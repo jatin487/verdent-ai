@@ -24,11 +24,38 @@ model  = None
 labels = {}
 
 def load_model():
+    """Lazy-load model on first request (avoids blocking startup with TF/CV2 init)."""
     global model, labels
+    if model is not None or labels:
+        return  # Already loaded
+    
     try:
-        import tensorflow as tf
+        import importlib
+        
+        # Check if model file exists
+        if not os.path.isfile(MODEL_PATH):
+            print(f"[WARN] Model file not found at {MODEL_PATH}")
+            return
+        
+        keras = None
+        try:
+            import tensorflow as tf
+            # Use getattr to avoid static-analysis stub complaints
+            keras = getattr(tf, "keras", None)
+            if keras is None:
+                keras = importlib.import_module("tensorflow.keras")
+        except Exception as e:
+            print(f"[WARN] TensorFlow import failed: {e}")
+            try:
+                keras = importlib.import_module("keras")
+            except Exception:
+                keras = None
+
+        if keras is None:
+            raise ImportError("Could not import keras")
+        
         print(f"[INFO] Loading model from {MODEL_PATH} …")
-        model = tf.keras.models.load_model(MODEL_PATH)
+        model = keras.models.load_model(MODEL_PATH)
         print(f"[INFO] Model input shape: {model.input_shape}")
         with open(LABELS_PATH) as f:
             labels = json.load(f)
@@ -37,8 +64,6 @@ def load_model():
     except Exception as e:
         print(f"[WARN] Could not load model: {e}")
         print("[WARN] Prediction endpoint will return demo data until model is trained.")
-
-load_model()
 
 # ── Helper ──────────────────────────────────────────────────────────────────────
 def predict_from_array(arr: np.ndarray):
@@ -58,6 +83,7 @@ def predict_from_array(arr: np.ndarray):
 # ── Routes ───────────────────────────────────────────────────────────────────────
 @app.route("/health")
 def health():
+    load_model()  # Lazy-load on first request
     return jsonify({
         "status": "ok",
         "model_loaded": model is not None,
@@ -106,7 +132,21 @@ def predict_image():
         img_bytes = base64.b64decode(data["image"])
         np_arr    = np.frombuffer(img_bytes, np.uint8)
         img       = cv2.imdecode(np_arr, cv2.IMREAD_GRAYSCALE)
-        img       = cv2.resize(img, (28, 28))
+
+        # Ensure decoding succeeded
+        if img is None:
+            raise ValueError("Decoded image is None or unsupported image format")
+
+        # Prefer UMat for typed OpenCV bindings, with a fallback to ndarray-based resize
+        try:
+            uimg = cv2.UMat(img)
+            resized = cv2.resize(uimg, (28, 28))
+            # cv2.resize on UMat returns a UMat; convert back to ndarray
+            img = resized.get() if hasattr(resized, "get") else resized
+        except Exception:
+            # Fallback: operate directly on ndarray
+            img = cv2.resize(img, (28, 28), interpolation=cv2.INTER_AREA)
+
         arr       = img.flatten().astype(np.float32) / 255.0
     except Exception as e:
         return jsonify({"error": f"Image decode failed: {e}"}), 400
@@ -122,3 +162,4 @@ def get_labels():
 if __name__ == "__main__":
     print("\n🚀 Verdent Backend starting on http://localhost:5001\n")
     app.run(host="0.0.0.0", port=5001, debug=False)
+
