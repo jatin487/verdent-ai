@@ -22,9 +22,36 @@ const HAND_CONNECTIONS = [
 
 function drawLandmarks(ctx, landmarks, W, H) {
   if (!landmarks || landmarks.length === 0) return;
+
+  // Calculate bounding box for hand only (for that clean 'vibe' of the SignDetector)
+  let minX = 1, minY = 1, maxX = 0, maxY = 0;
+  for (const lm of landmarks) {
+    minX = Math.min(minX, lm.x);
+    minY = Math.min(minY, lm.y);
+    maxX = Math.max(maxX, lm.x);
+    maxY = Math.max(maxY, lm.y);
+  }
+
+  const padX = (maxX - minX) * 0.2;
+  const padY = (maxY - minY) * 0.2;
+  minX = Math.max(0, minX - padX);
+  minY = Math.max(0, minY - padY);
+  maxX = Math.min(1, maxX + padX);
+  maxY = Math.min(1, maxY + padY);
+
+  const cropX = minX * W;
+  const cropY = minY * H;
+  const cropW = (maxX - minX) * W;
+  const cropH = (maxY - minY) * H;
+
   ctx.clearRect(0, 0, W, H);
-  ctx.lineWidth = 2.5;
-  ctx.strokeStyle = 'rgba(124,106,247,0.9)';
+  ctx.save();
+  ctx.rect(cropX, cropY, cropW, cropH);
+  ctx.clip(); // Creates the specialized "focused" look
+
+  // Draw Bones
+  ctx.lineWidth = 3.5;
+  ctx.strokeStyle = 'rgba(124,106,247,0.95)';
   for (const [a, b] of HAND_CONNECTIONS) {
     const lA = landmarks[a], lB = landmarks[b];
     if (!lA || !lB) continue;
@@ -33,12 +60,23 @@ function drawLandmarks(ctx, landmarks, W, H) {
     ctx.lineTo(lB.x * W, lB.y * H);
     ctx.stroke();
   }
+
+  // Draw Joints
   ctx.fillStyle = '#38bdf8';
   for (const lm of landmarks) {
     ctx.beginPath();
-    ctx.arc(lm.x * W, lm.y * H, 5, 0, 2 * Math.PI);
+    ctx.arc(lm.x * W, lm.y * H, 5.5, 0, 2 * Math.PI);
     ctx.fill();
+    
+    // Add outer ring for premium feel
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.lineWidth = 1;
+    ctx.arc(lm.x * W, lm.y * H, 7.5, 0, 2 * Math.PI);
+    ctx.stroke();
   }
+
+  ctx.restore();
 }
 
 export default function VirtualClass({ onBack, setPage }) {
@@ -80,6 +118,9 @@ export default function VirtualClass({ onBack, setPage }) {
   }, []);
 
   // ── Firebase subscription ───────────────────────────────────────────────────
+  // Use a ref to track the last received sign to avoid re-subscribing in useEffect
+  const lastReceivedRef = useRef(null);
+
   useEffect(() => {
     const unsub = subscribeToClassSession((data) => {
       setSessionActive(!!data.active);
@@ -87,20 +128,24 @@ export default function VirtualClass({ onBack, setPage }) {
       const signTime = data.lastSignAt?.toMillis?.() ?? 0;
       const isNew = signTime > joinedAtRef.current;
 
-      if (data.lastSign && isNew && data.lastSign !== lastReceivedSign) {
+      if (data.lastSign && isNew && data.lastSign !== lastReceivedRef.current) {
         const entry = {
           phrase: data.lastSign,
           emoji: data.lastSignEmoji || '🤟',
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
         };
         setBroadcastHistory(prev => [entry, ...prev].slice(0, 8));
+        
+        lastReceivedRef.current = data.lastSign;
         setLastReceivedSign(data.lastSign);
         setLastSignEmoji(data.lastSignEmoji || '🤟');
+        
+        // Non-teachers get auto-speech for accessibility
         if (!isTeacher) speak(data.lastSign);
       }
     });
     return () => unsub();
-  }, [isTeacher, lastReceivedSign, speak]);
+  }, [isTeacher, speak]);
 
   // ── Gesture analysis ────────────────────────────────────────────────────────
   const analyzeHand = useCallback((landmarks) => {
@@ -131,16 +176,24 @@ export default function VirtualClass({ onBack, setPage }) {
     const code = `${thState}-${indexExt?'1':'0'}${middleExt?'1':'0'}${ringExt?'1':'0'}${pinkyExt?'1':'0'}`;
     let match = GESTURE_DICTIONARY.find(g => g.code === code);
 
+    // Advanced Distance Logic (Same as SignDetector)
     const thumbIndexDist = Math.hypot(landmarks[4].x - landmarks[8].x, landmarks[4].y - landmarks[8].y);
+    const thumbMiddleDist = Math.hypot(landmarks[4].x - landmarks[12].x, landmarks[4].y - landmarks[12].y);
+    
     if (thumbIndexDist < palmSize * 0.6 && middleExt && ringExt && pinkyExt && !indexExt) {
       match = GESTURE_DICTIONARY.find(g => g.code === 'SPECIAL-OK');
+    } else if (thumbIndexDist < palmSize * 0.4 && thumbMiddleDist < palmSize * 0.4 && !ringExt && !pinkyExt) {
+      match = GESTURE_DICTIONARY.find(g => g.code === 'SPECIAL-MONEY');
+    } else if (thumbIndexDist < palmSize * 0.4 && !middleExt && !ringExt && !pinkyExt && !thumbOut && !thumbUp && !thumbDown) {
+      match = GESTURE_DICTIONARY.find(g => g.code === 'SPECIAL-PINCH');
     }
 
     const currentDetect = match ? match.phrase : null;
     const currentEmoji  = match ? match.emoji  : '🤟';
     setDetectedSign(currentDetect);
 
-    if (currentDetect && isTeacher) {
+    // Common analysis logic (for both roles, but only teacher broadcasts)
+    if (currentDetect) {
       if (lastDetectedRef.current === currentDetect) {
         if (!holdStartRef.current) holdStartRef.current = Date.now();
         const elapsed = Date.now() - holdStartRef.current;
@@ -150,13 +203,19 @@ export default function VirtualClass({ onBack, setPage }) {
           confirmedRef.current = currentDetect;
           setConfirmedSign(currentDetect);
           setHoldProgress(0);
-          broadcastSign(currentDetect, currentEmoji);
-          const entry = {
-            phrase: currentDetect,
-            emoji: currentEmoji,
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-          };
-          setBroadcastHistory(prev => [entry, ...prev].slice(0, 8));
+
+          if (isTeacher) {
+            broadcastSign(currentDetect, currentEmoji);
+            const entry = {
+              phrase: currentDetect,
+              emoji: currentEmoji,
+              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            };
+            setBroadcastHistory(prev => [entry, ...prev].slice(0, 8));
+          } else {
+            // Students speak their own signs locally too for feedback
+            speak(`You signed: ${currentDetect}`);
+          }
         }
       } else {
         lastDetectedRef.current = currentDetect;
@@ -170,63 +229,111 @@ export default function VirtualClass({ onBack, setPage }) {
       confirmedRef.current = null;
       setHoldProgress(0);
     }
-  }, [isTeacher]);
+  }, [isTeacher, speak]);
 
   // ── Camera ──────────────────────────────────────────────────────────────────
   const startCamera = useCallback(async () => {
+    if (camStatus === 'active') return;
     setCamStatus('loading');
+    console.log("[VC] Starting camera...");
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          width: { ideal: 640 }, 
+          height: { ideal: 480 },
+          facingMode: "user" 
+        } 
+      });
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+        // Some browsers need a slight delay or manual play call
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current.play().catch(e => console.error("[VC] Video play error:", e));
+        };
       }
 
-      await new Promise((res) => {
-        const wait = () => window.Hands ? res() : setTimeout(wait, 100);
+      await new Promise((res, rej) => {
+        const timeout = setTimeout(() => rej(new Error("MediaPipe load timeout")), 8000);
+        const wait = () => {
+          if (window.Hands) {
+            clearTimeout(timeout);
+            res();
+          } else {
+            setTimeout(wait, 200);
+          }
+        };
         wait();
       });
 
       const hands = new window.Hands({
         locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`,
       });
-      hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.65, minTrackingConfidence: 0.5 });
+
+      hands.setOptions({ 
+        maxNumHands: 1, 
+        modelComplexity: 1, 
+        minDetectionConfidence: 0.6, 
+        minTrackingConfidence: 0.5 
+      });
 
       let frameCount = 0;
       hands.onResults(results => {
         const canvas = canvasRef.current;
         const video  = videoRef.current;
-        if (!canvas || !video) return;
-        const W = canvas.width  = video.videoWidth;
-        const H = canvas.height = video.videoHeight;
+        if (!canvas || !video || video.paused) return;
+
+        // Sync canvas size to internal video resolution
+        if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+        }
+
+        const W = canvas.width;
+        const H = canvas.height;
         const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, W, H);
+        
         if (results.multiHandLandmarks?.length > 0) {
           drawLandmarks(ctx, results.multiHandLandmarks[0], W, H);
           frameCount++;
           if (frameCount % 5 === 0) analyzeHand(results.multiHandLandmarks[0]);
         } else {
+          ctx.clearRect(0, 0, W, H);
           analyzeHand(null);
         }
       });
 
       mpHandsRef.current = hands;
+
       const processFrame = async () => {
-        if (videoRef.current?.readyState >= 2) await hands.send({ image: videoRef.current });
+        if (!mpHandsRef.current) return;
+        if (videoRef.current && videoRef.current.readyState >= 2 && !videoRef.current.paused) {
+          try {
+            await hands.send({ image: videoRef.current });
+          } catch (e) {
+            console.warn("[VC] MP Frame error:", e);
+          }
+        }
         animFrameRef.current = requestAnimationFrame(processFrame);
       };
       animFrameRef.current = requestAnimationFrame(processFrame);
 
       setCamStatus('active');
+      console.log("[VC] Camera started successfully.");
       if (isTeacher) startClassSession(currentUser?.uid || 'teacher');
     } catch (err) {
-      console.error(err);
+      console.error("[VC] Camera initialization failed:", err);
       setCamStatus('error');
     }
-  }, [analyzeHand, isTeacher, currentUser]);
+  }, [analyzeHand, isTeacher, currentUser, camStatus]);
 
   const stopCamera = useCallback(() => {
     cancelAnimationFrame(animFrameRef.current);
+    if (mpHandsRef.current) {
+      mpHandsRef.current.close();
+      mpHandsRef.current = null;
+    }
     if (videoRef.current?.srcObject) {
       videoRef.current.srcObject.getTracks().forEach(t => t.stop());
       videoRef.current.srcObject = null;
@@ -298,7 +405,7 @@ export default function VirtualClass({ onBack, setPage }) {
               <div className="vc-camera-box">
                 {camStatus === 'active' ? (
                   <div className="vc-video-wrap">
-                    <video ref={videoRef} playsInline muted className="vc-video" />
+                    <video ref={videoRef} playsInline muted autoPlay className="vc-video" />
                     <canvas ref={canvasRef} className="vc-canvas" />
                     {detectedSign && (
                       <div className="vc-overlay-sign">
@@ -371,6 +478,48 @@ export default function VirtualClass({ onBack, setPage }) {
                   </div>
                 )}
               </div>
+
+              {/* Individual Analyzer (For Students to practice/reply) */}
+              <div className="vc-section-header" style={{ marginTop: '1rem' }}>
+                <span className="vc-section-icon">📷</span>
+                <div>
+                  <h2 className="vc-section-title">Your Sign Analyzer</h2>
+                  <p className="vc-section-sub">Practice or respond with your own signs</p>
+                </div>
+              </div>
+              
+              <div className="vc-camera-box">
+                {camStatus === 'active' ? (
+                  <div className="vc-video-wrap">
+                    <video ref={videoRef} playsInline muted autoPlay className="vc-video" />
+                    <canvas ref={canvasRef} className="vc-canvas" />
+                    {detectedSign && (
+                      <div className="vc-overlay-sign">
+                        <span className="vc-overlay-text">{detectedSign}</span>
+                        <div className="vc-hold-bar">
+                          <div className="vc-hold-fill" style={{ width: `${holdProgress}%` }} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="vc-camera-placeholder">
+                    {camStatus === 'loading' && <div className="vc-spinner" />}
+                    {camStatus === 'idle' && <span className="vc-placeholder-icon">📷</span>}
+                    {camStatus === 'error' && <span className="vc-placeholder-icon">⚠️</span>}
+                    <p>{camStatus === 'loading' ? 'Loading MediaPipe…' : camStatus === 'error' ? 'Camera error' : 'Camera off'}</p>
+                  </div>
+                )}
+              </div>
+
+              <button
+                className={`vc-cam-btn ${camStatus === 'active' ? 'stop' : 'start'}`}
+                onClick={camStatus === 'active' ? stopCamera : startCamera}
+                disabled={camStatus === 'loading'}
+                style={{ marginTop: '0.5rem' }}
+              >
+                {camStatus === 'active' ? '⏹ Stop My Camera' : camStatus === 'loading' ? '⏳ Initializing…' : '🎬 Start My Analyzer'}
+              </button>
             </>
           )}
 
@@ -485,9 +634,9 @@ export default function VirtualClass({ onBack, setPage }) {
           border: 1px solid rgba(124,106,247,0.2);
           min-height: 200px;
         }
-        .vc-video-wrap { position: relative; width: 100%; }
-        .vc-video { width: 100%; display: block; }
-        .vc-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .vc-video-wrap { position: relative; width: 100%; aspect-ratio: 4/3; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .vc-video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: block; }
+        .vc-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; transform: scaleX(-1); }
 
         .vc-overlay-sign {
           position: absolute; bottom: 0; left: 0; right: 0;
