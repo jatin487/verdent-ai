@@ -12,11 +12,14 @@
     text-align: center;
     max-width: 720px;
     padding: 40px 20px;
+    z-index: 10;
 }
 
 .landing-new__title {
+    font-family: 'Lexend', sans-serif;
     font-size: 82px;
     font-weight: 900;
+    margin-bottom: 0px;
     background: linear-gradient(90deg, #f6a84c, #7cc36e, #2fb6a3);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -25,13 +28,15 @@
 .landing-new__subtitle {
     font-size: 28px;
     color: #2a8fa7;
+    margin-top: -10px;
+    font-weight: 500;
 }
 
 .landing-new__graphic {
     position: relative;
     width: 260px;
     height: 260px;
-    margin: 60px auto;
+    margin: 40px auto;
 }
 
 .landing-new__decoration-ring {
@@ -73,46 +78,22 @@
     font-size: 24px;
     background: white;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-    animation: orbit 10s linear infinite;
 }
 
-.icon-video {
-    top: -10px;
-    left: 50%;
-    transform-origin: 50% 130px;
-}
-
-.icon-audio {
-    bottom: -10px;
-    left: 20%;
-    transform-origin: 100px -110px;
-}
-
-.icon-mic {
-    bottom: -10px;
-    right: 20%;
-    transform-origin: -100px -110px;
-}
-
-@keyframes orbit {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
-}
+.icon-video { top: -20px; left: 40%; }
+.icon-audio { bottom: -20px; left: 10%; }
+.icon-mic { bottom: -20px; right: 10%; }
 
 .landing-new__description {
-    margin-top: 20px;
-    font-size: 18px;
+    margin: 40px 0;
+    font-size: 1.1rem;
     color: #475569;
+    line-height: 1.6;
 }
 
 .btn-get-started {
-    margin-top: 30px;
     padding: 18px 50px;
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 700;
     border-radius: 40px;
     border: none;
@@ -120,6 +101,11 @@
     color: white;
     box-shadow: 0 12px 30px rgba(255, 120, 80, 0.35);
     cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.btn-get-started:hover {
+    transform: scale(1.05);
 }
 
 .landing-new__bg-shape {
@@ -127,23 +113,9 @@
     width: 500px;
     height: 500px;
     filter: blur(120px);
-    opacity: 0.5;
+    opacity: 0.3;
 }
 
-.shape-pink {
-    background: #ff9a3c;
-    top: -150px;
-    left: -150px;
-}
-
-.shape-yellow {
-    background: #7cc36e;
-    bottom: -200px;
-    right: -150px;
-}
-
-.shape-cyan {
-    background: #2fb6a3;
-    top: 40%;
-    left: 60%;
-}
+.shape-pink { background: #ff9a3c; top: -150px; left: -150px; }
+.shape-yellow { background: #7cc36e; bottom: -200px; right: -150px; }
+.shape-cyan { background: #2fb6a3; top: 30%; left: 70%; }

@@ -26,16 +26,16 @@ export default function LandingPage({ setPage }) {
         </div>
 
         <div className="landing-new__description">
-          <p>
+          <A11yText as="p">
             Welcome to a fun and magical world where everyone can learn to
             communicate. Discover inclusive games, AI tools and learning
             experiences built to bridge communication gaps.
-          </p>
+          </A11yText>
         </div>
 
         <button
           className="btn-get-started"
-          onClick={() => setPage("dashboard")}
+          onClick={() => setPage("roleselect")}
         >
           🚀 Get Started
         </button>

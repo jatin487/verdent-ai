@@ -1,5 +1,7 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useA11y } from '../context/AccessibilityContext'
+import { useAuth } from '../context/AuthContext'
+import { saveProgress } from '../services/progressService'
 import './AlphabetLearner.css'
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
@@ -16,7 +18,7 @@ const LETTER_EXPLANATIONS = {
           <li className="alphabet__step">✍️ All fingers pressed together - no gaps!</li>
           <li className="alphabet__step">✍️ Palm can face down or forward - your choice</li>
         </ol>
-        <div className="alphabet__tip">💡 Precise ASL: Hand in FIST with thumb on side facing forward</div>
+        <div className="alphabet__tip">💡 Precise ISL: Hand in FIST with thumb on side facing forward</div>
       </div>
     ),
     story: (
@@ -62,7 +64,7 @@ const LETTER_EXPLANATIONS = {
           <li className="alphabet__step">✍️ Thumb tucks flat against palm (hidden)</li>
           <li className="alphabet__step">✍️ Palm faces toward you - hold steady</li>
         </ol>
-        <div className="alphabet__tip">💡 Precise ASL: Open hand with 4 fingers spread wide, thumb tucked</div>
+        <div className="alphabet__tip">💡 Precise ISL: Open hand with 4 fingers spread wide, thumb tucked</div>
       </div>
     ),
     story: (
@@ -108,7 +110,7 @@ const LETTER_EXPLANATIONS = {
           <li className="alphabet__step">✍️ One finger (index) points UP straight</li>
           <li className="alphabet__step">✍️ Other 3 fingers stay curved and closed</li>
         </ol>
-        <div className="alphabet__tip">💡 Precise ASL: Fist with ONE index finger pointing straight up</div>
+        <div className="alphabet__tip">💡 Precise ISL: Fist with ONE index finger pointing straight up</div>
       </div>
     ),
     story: (
@@ -154,7 +156,7 @@ const LETTER_EXPLANATIONS = {
           <li className="alphabet__step">✍️ Keep other fingers curled down</li>
           <li className="alphabet__step">✍️ Thumb rests on the SIDE of fist</li>
         </ol>
-        <div className="alphabet__tip">💡 Precise ASL: Fist with index up + thumb to side</div>
+        <div className="alphabet__tip">💡 Precise ISL: Fist with index up + thumb to side</div>
       </div>
     ),
     story: (
@@ -200,7 +202,7 @@ const LETTER_EXPLANATIONS = {
           <li className="alphabet__step">✍️ Keep all fingers STRAIGHT (no bending)</li>
           <li className="alphabet__step">✍️ Palm can face any direction</li>
         </ol>
-        <div className="alphabet__tip">💡 Precise ASL: Flat hand with all 5 fingers spread wide</div>
+        <div className="alphabet__tip">💡 Precise ISL: Flat hand with all 5 fingers spread wide</div>
       </div>
     ),
     story: (
@@ -246,7 +248,7 @@ const LETTER_EXPLANATIONS = {
           <li className="alphabet__step">✍️ Hold middle, ring, pinky UP straight</li>
           <li className="alphabet__step">✍️ Keep the 3 fingers close together</li>
         </ol>
-        <div className="alphabet__tip">💡 Precise ASL: Circle (thumb+index) + 3 fingers up</div>
+        <div className="alphabet__tip">💡 Precise ISL: Circle (thumb+index) + 3 fingers up</div>
       </div>
     ),
     story: (
@@ -292,7 +294,7 @@ const LETTER_EXPLANATIONS = {
           <li className="alphabet__step">✍️ Point your C to the SIDE</li>
           <li className="alphabet__step">✍️ It looks like a G from that angle</li>
         </ol>
-        <div className="alphabet__tip">💡 Precise ASL: C shape pointed sideways</div>
+        <div className="alphabet__tip">💡 Precise ISL: C shape pointed sideways</div>
       </div>
     ),
     story: (
@@ -338,7 +340,7 @@ const LETTER_EXPLANATIONS = {
           <li className="alphabet__step">✍️ Both fingers point straight UP</li>
           <li className="alphabet__step">✍️ Tuck your other 3 fingers down</li>
         </ol>
-        <div className="alphabet__tip">💡 Precise ASL: Two fingers spread wide pointing up</div>
+        <div className="alphabet__tip">💡 Precise ISL: Two fingers spread wide pointing up</div>
       </div>
     ),
     story: (
@@ -384,7 +386,7 @@ const LETTER_EXPLANATIONS = {
           <li className="alphabet__step">✍️ All other fingers curl down tight</li>
           <li className="alphabet__step">✍️ Point it straight to the sky</li>
         </ol>
-        <div className="alphabet__tip">💡 Precise ASL: Only pinky finger up, straight</div>
+        <div className="alphabet__tip">💡 Precise ISL: Only pinky finger up, straight</div>
       </div>
     ),
     story: (
@@ -430,7 +432,7 @@ const LETTER_EXPLANATIONS = {
           <li className="alphabet__step">✍️ Make a hook shape like a J</li>
           <li className="alphabet__step">✍️ Keep the motion graceful</li>
         </ol>
-        <div className="alphabet__tip">💡 Precise ASL: Pinky curves down into hook shape</div>
+        <div className="alphabet__tip">💡 Precise ISL: Pinky curves down into hook shape</div>
       </div>
     ),
     story: (
@@ -476,7 +478,7 @@ const LETTER_EXPLANATIONS = {
           <li className="alphabet__step">✍️ Place your thumb UP between them</li>
           <li className="alphabet__step">✍️ Thumb touches from underneath</li>
         </ol>
-        <div className="alphabet__tip">💡 Precise ASL: Peace sign with thumb up between</div>
+        <div className="alphabet__tip">💡 Precise ISL: Peace sign with thumb up between</div>
       </div>
     ),
     story: (
@@ -522,7 +524,7 @@ const LETTER_EXPLANATIONS = {
           <li className="alphabet__step">✍️ Make a 90-degree angle (like a corner)</li>
           <li className="alphabet__step">✍️ Curl your other 3 fingers down</li>
         </ol>
-        <div className="alphabet__tip">💡 Precise ASL: Index up + thumb out = L shape</div>
+        <div className="alphabet__tip">💡 Precise ISL: Index up + thumb out = L shape</div>
       </div>
     ),
     story: (
@@ -568,7 +570,7 @@ const LETTER_EXPLANATIONS = {
           <li className="alphabet__step">✍️ All fingers STRAIGHT and tall</li>
           <li className="alphabet__step">✍️ Thumb tucks DOWN flat on palm</li>
         </ol>
-        <div className="alphabet__tip">💡 Precise ASL: 4 fingers up + thumb hidden</div>
+        <div className="alphabet__tip">💡 Precise ISL: 4 fingers up + thumb hidden</div>
       </div>
     ),
     story: (
@@ -614,7 +616,7 @@ const LETTER_EXPLANATIONS = {
           <li className="alphabet__step">✍️ Cross them at a slight angle</li>
           <li className="alphabet__step">✍️ Like an X shape - touching at middle</li>
         </ol>
-        <div className="alphabet__tip">💡 Precise ASL: Two fingers crossed at angle</div>
+        <div className="alphabet__tip">💡 Precise ISL: Two fingers crossed at angle</div>
       </div>
     ),
     story: (
@@ -660,7 +662,7 @@ const LETTER_EXPLANATIONS = {
           <li className="alphabet__step">✍️ Keep the circle SMOOTH and round</li>
           <li className="alphabet__step">✍️ It should look like a O!</li>
         </ol>
-        <div className="alphabet__tip">💡 Precise ASL: All fingers + thumb making circle</div>
+        <div className="alphabet__tip">💡 Precise ISL: All fingers + thumb making circle</div>
       </div>
     ),
     story: (
@@ -706,7 +708,7 @@ const LETTER_EXPLANATIONS = {
           <li className="alphabet__step">✍️ Fingers point toward the ground</li>
           <li className="alphabet__step">✍️ It looks like the letter P</li>
         </ol>
-        <div className="alphabet__tip">💡 Precise ASL: Peace sign flipped upside down</div>
+        <div className="alphabet__tip">💡 Precise ISL: Peace sign flipped upside down</div>
       </div>
     ),
     story: (
@@ -752,7 +754,7 @@ const LETTER_EXPLANATIONS = {
           <li className="alphabet__step">✍️ Point your PINKY down below circle</li>
           <li className="alphabet__step">✍️ The pinky is the tail of Q</li>
         </ol>
-        <div className="alphabet__tip">💡 Precise ASL: Circle + pinky down = tail</div>
+        <div className="alphabet__tip">💡 Precise ISL: Circle + pinky down = tail</div>
       </div>
     ),
     story: (
@@ -798,7 +800,7 @@ const LETTER_EXPLANATIONS = {
           <li className="alphabet__step">✍️ Cross at the middle point</li>
           <li className="alphabet__step">✍️ They should touch where they cross</li>
         </ol>
-        <div className="alphabet__tip">💡 Precise ASL: Two fingers crossed forming X</div>
+        <div className="alphabet__tip">💡 Precise ISL: Two fingers crossed forming X</div>
       </div>
     ),
     story: (
@@ -844,7 +846,7 @@ const LETTER_EXPLANATIONS = {
           <li className="alphabet__step">✍️ Make a small S-shaped motion in air</li>
           <li className="alphabet__step">✍️ Wavy like a snake - sssss</li>
         </ol>
-        <div className="alphabet__tip">💡 Precise ASL: Fist making S motion in air</div>
+        <div className="alphabet__tip">💡 Precise ISL: Fist making S motion in air</div>
       </div>
     ),
     story: (
@@ -890,7 +892,7 @@ const LETTER_EXPLANATIONS = {
           <li className="alphabet__step">✍️ Thumb points straight up</li>
           <li className="alphabet__step">✍️ It makes the T shape!</li>
         </ol>
-        <div className="alphabet__tip">💡 Precise ASL: Fist with thumb up in middle</div>
+        <div className="alphabet__tip">💡 Precise ISL: Fist with thumb up in middle</div>
       </div>
     ),
     story: (
@@ -936,7 +938,7 @@ const LETTER_EXPLANATIONS = {
           <li className="alphabet__step">✍️ Point them straight UP to sky</li>
           <li className="alphabet__step">✍️ They make the U shape!</li>
         </ol>
-        <div className="alphabet__tip">💡 Precise ASL: 2 fingers close together pointing up</div>
+        <div className="alphabet__tip">💡 Precise ISL: 2 fingers close together pointing up</div>
       </div>
     ),
     story: (
@@ -982,7 +984,7 @@ const LETTER_EXPLANATIONS = {
           <li className="alphabet__step">✍️ Make a big V shape with them</li>
           <li className="alphabet__step">✍️ Keep fingers straight and tall</li>
         </ol>
-        <div className="alphabet__tip">💡 Precise ASL: 2 fingers spread wide = V shape</div>
+        <div className="alphabet__tip">💡 Precise ISL: 2 fingers spread wide = V shape</div>
       </div>
     ),
     story: (
@@ -1028,7 +1030,7 @@ const LETTER_EXPLANATIONS = {
           <li className="alphabet__step">✍️ All fingers pointed UP straight</li>
           <li className="alphabet__step">✍️ They look like mountain peaks!</li>
         </ol>
-        <div className="alphabet__tip">💡 Precise ASL: 4 fingers spread wide = W peaks</div>
+        <div className="alphabet__tip">💡 Precise ISL: 4 fingers spread wide = W peaks</div>
       </div>
     ),
     story: (
@@ -1074,7 +1076,7 @@ const LETTER_EXPLANATIONS = {
           <li className="alphabet__step">✍️ Make an X shape in the air</li>
           <li className="alphabet__step">✍️ They should touch where crossing</li>
         </ol>
-        <div className="alphabet__tip">💡 Precise ASL: 2 fingers crossed = X shape</div>
+        <div className="alphabet__tip">💡 Precise ISL: 2 fingers crossed = X shape</div>
       </div>
     ),
     story: (
@@ -1120,7 +1122,7 @@ const LETTER_EXPLANATIONS = {
           <li className="alphabet__step">✍️ Tuck your 3 middle fingers DOWN</li>
           <li className="alphabet__step">✍️ It makes the Y shape!</li>
         </ol>
-        <div className="alphabet__tip">💡 Precise ASL: Thumb + pinky up = Y shape</div>
+        <div className="alphabet__tip">💡 Precise ISL: Thumb + pinky up = Y shape</div>
       </div>
     ),
     story: (
@@ -1166,7 +1168,7 @@ const LETTER_EXPLANATIONS = {
           <li className="alphabet__step">✍️ Go diagonal down, then across, then diagonal</li>
           <li className="alphabet__step">✍️ Make it BIG and clear!</li>
         </ol>
-        <div className="alphabet__tip">💡 Precise ASL: Index finger drawing Z in air</div>
+        <div className="alphabet__tip">💡 Precise ISL: Index finger drawing Z in air</div>
       </div>
     ),
     story: (
@@ -1206,18 +1208,52 @@ const LETTER_EXPLANATIONS = {
 
 export default function AlphabetLearner({ setPage }) {
   const { settings } = useA11y()
+  const { currentUser } = useAuth()
   const [stepIndex, setStepIndex] = useState(0)
   const [activeExplanation, setActiveExplanation] = useState(0)
   const [animatingIn, setAnimatingIn] = useState(true)
+  const [completedLetters, setCompletedLetters] = useState(new Set())
   const selectedLetter = ALPHABET[stepIndex]
 
+  // Save progress to Firebase whenever a new letter is visited
+  useEffect(() => {
+    if (currentUser) {
+      const newCompleted = new Set(completedLetters);
+      newCompleted.add(selectedLetter);
+      setCompletedLetters(newCompleted);
+      const pct = Math.round((newCompleted.size / 26) * 100);
+      saveProgress(currentUser.uid, 'alphabets', {
+        completed: [...newCompleted],
+        currentLetter: selectedLetter,
+        currentStep: stepIndex + 1,
+        total: 26,
+        percent: pct,
+        email: currentUser.email,
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stepIndex]);
+
+
   const speak = useCallback((text) => {
-    if (!settings.tts || !window.speechSynthesis) return
-    window.speechSynthesis.cancel()
-    const utt = new SpeechSynthesisUtterance(text)
-    utt.rate = 0.9
-    utt.pitch = 1.2
-    window.speechSynthesis.speak(utt)
+    if (!settings.tts || !window.speechSynthesis) return;
+
+    window.speechSynthesis.cancel();
+    
+    setTimeout(() => {
+      const utt = new SpeechSynthesisUtterance(text);
+      utt.rate = 0.9;
+      utt.pitch = 1.2;
+      
+      window._verbalUtterances = window._verbalUtterances || [];
+      window._verbalUtterances.push(utt);
+      
+      utt.onend = () => {
+         window._verbalUtterances = window._verbalUtterances.filter(u => u !== utt);
+      };
+      
+      window.speechSynthesis.speak(utt);
+    }, 50);
   }, [settings.tts])
 
   const goToStep = (idx) => {

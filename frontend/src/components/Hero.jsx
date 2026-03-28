@@ -8,7 +8,7 @@
   <div className="feature">
     🤟
     <h3>Sign Language AI</h3>
-    <p>Detect ASL gestures using computer vision.</p>
+    <p>Detect ISL gestures using computer vision.</p>
   </div>
 
   <div className="feature">

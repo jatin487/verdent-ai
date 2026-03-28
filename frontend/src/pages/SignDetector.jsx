@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 import { useA11y } from '../context/AccessibilityContext'
+import { GESTURE_DICTIONARY } from '../data/gestures'
 import './SignDetector.css'
 
 const BACKEND_URL = 'http://localhost:5001'
@@ -91,15 +92,28 @@ export default function SignDetector() {
   const lastDetectedRef = useRef(null)
   const confirmedRef = useRef(null)
 
-  // TTS helper for reading out the sign
   const speak = useCallback((text) => {
-    // Text-to-speech is mandatory
-    if (!window.speechSynthesis) return
-    window.speechSynthesis.cancel()
-    const utt = new SpeechSynthesisUtterance(text)
-    utt.rate = 0.95
-    utt.pitch = 1.1
-    window.speechSynthesis.speak(utt)
+    if (!window.speechSynthesis) return;
+    
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+    
+    // A slight delay ensures the cancel is fully processed before speaking
+    setTimeout(() => {
+      const utt = new SpeechSynthesisUtterance(text);
+      utt.rate = 0.95;
+      utt.pitch = 1.1;
+      
+      // Store reference globally to prevent Chrome garbage collection bug
+      window._verbalUtterances = window._verbalUtterances || [];
+      window._verbalUtterances.push(utt);
+      
+      utt.onend = () => {
+         window._verbalUtterances = window._verbalUtterances.filter(u => u !== utt);
+      };
+      
+      window.speechSynthesis.speak(utt);
+    }, 50);
   }, [])
 
   const analyzeHand = useCallback(async (landmarks) => {
@@ -113,65 +127,48 @@ export default function SignDetector() {
 
     let currentDetect = null
     
-    // Evaluate heuristic expressions first
+    // Calculate palm size for relative distances
+    const palmSize = Math.hypot(landmarks[5].x - landmarks[17].x, landmarks[5].y - landmarks[17].y);
+    
+    // General finger extensions
     const indexExt = landmarks[8].y < landmarks[6].y;
     const middleExt = landmarks[12].y < landmarks[10].y;
     const ringExt = landmarks[16].y < landmarks[14].y;
     const pinkyExt = landmarks[20].y < landmarks[18].y;
     
-    // Use palm size for relative distance checks
-    const palmSize = Math.hypot(landmarks[5].x - landmarks[17].x, landmarks[5].y - landmarks[17].y);
-    const thumbIndexDist = Math.hypot(landmarks[4].x - landmarks[8].x, landmarks[4].y - landmarks[8].y);
+    // Thumb state categorization
+    const thumbUp = landmarks[4].y < landmarks[3].y && landmarks[4].y < landmarks[5].y - (palmSize * 0.3);
+    const thumbDown = landmarks[4].y > landmarks[3].y && landmarks[4].y > landmarks[5].y + (palmSize * 0.3);
     const thumbOut = Math.abs(landmarks[4].x - landmarks[9].x) > (palmSize * 0.8);
-    
-    const isFist = !indexExt && !middleExt && !ringExt && !pinkyExt;
-    const isThumbUp = isFist && landmarks[4].y < landmarks[3].y && landmarks[4].y < landmarks[5].y - (palmSize * 0.3);
-    const isThumbDown = isFist && landmarks[4].y > landmarks[3].y && landmarks[4].y > landmarks[5].y + (palmSize * 0.3);
-    
-    const isILY = indexExt && !middleExt && !ringExt && pinkyExt && thumbOut;
-    const isCallMe = !indexExt && !middleExt && !ringExt && pinkyExt && thumbOut;
-    const isOk = thumbIndexDist < (palmSize * 0.6) && middleExt && ringExt && pinkyExt && !indexExt;
-    const isHello = indexExt && middleExt && ringExt && pinkyExt && thumbOut;
-    
-    // Additional expressions
-    const isPeace = indexExt && middleExt && !ringExt && !pinkyExt && !thumbOut;
-    const isWait = indexExt && !middleExt && !ringExt && !pinkyExt && !thumbOut;
-    const isRockOn = indexExt && !middleExt && !ringExt && pinkyExt && !thumbOut;
 
-    if (isThumbUp) {
-      currentDetect = "I Understand";
-    } else if (isThumbDown) {
-      currentDetect = "I Don't Understand";
-    } else if (isILY) {
-      currentDetect = "I Love You";
-    } else if (isCallMe) {
-      currentDetect = "Call Me";
-    } else if (isOk) {
-      currentDetect = "Perfect";
-    } else if (isHello) {
-      currentDetect = "Hello";
-    } else if (isPeace) {
-      currentDetect = "Peace";
-    } else if (isWait) {
-      currentDetect = "Wait a Minute";
-    } else if (isRockOn) {
-      currentDetect = "Rock On";
+    let thState = "TUCKED";
+    if (thumbUp) thState = "UP";
+    else if (thumbDown) thState = "DOWN";
+    else if (thumbOut) thState = "OUT";
+
+    const code = `${thState}-${indexExt ? '1' : '0'}${middleExt ? '1' : '0'}${ringExt ? '1' : '0'}${pinkyExt ? '1' : '0'}`;
+
+    // Lookup 5-finger pattern in our dictionary
+    let match = GESTURE_DICTIONARY.find(g => g.code === code);
+
+    // Override with special distance-based ones that don't purely rely on UP/DOWN
+    const thumbIndexDist = Math.hypot(landmarks[4].x - landmarks[8].x, landmarks[4].y - landmarks[8].y);
+    const thumbMiddleDist = Math.hypot(landmarks[4].x - landmarks[12].x, landmarks[4].y - landmarks[12].y);
+    
+    const isOk = thumbIndexDist < (palmSize * 0.6) && middleExt && ringExt && pinkyExt && !indexExt;
+    const isHowMuch = thumbIndexDist < (palmSize * 0.4) && thumbMiddleDist < (palmSize * 0.4) && !ringExt && !pinkyExt;
+    const isPinch = thumbIndexDist < (palmSize * 0.4) && !middleExt && !ringExt && !pinkyExt && !thumbOut && !thumbUp && !thumbDown;
+
+    if (isOk) {
+      match = GESTURE_DICTIONARY.find(g => g.code === "SPECIAL-OK");
+    } else if (isHowMuch) {
+      match = GESTURE_DICTIONARY.find(g => g.code === "SPECIAL-MONEY");
+    } else if (isPinch) {
+      match = GESTURE_DICTIONARY.find(g => g.code === "SPECIAL-PINCH");
     }
 
-    // Fallback to ML model for letters
-    if (!currentDetect) {
-      try {
-        const flat = landmarks.flatMap(lm => [lm.x, lm.y, lm.z])
-        const res = await fetch(`${BACKEND_URL}/predict`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ landmarks: flat }),
-        })
-        const data = await res.json()
-        currentDetect = data?.label ? data.label.toUpperCase() : null
-      } catch {
-        currentDetect = null
-      }
+    if (match) {
+      currentDetect = match.phrase;
     }
 
     setDetectedLetter(currentDetect)
@@ -303,7 +300,7 @@ export default function SignDetector() {
           <div>
             <h1 className="detector__title">🖐️ One-on-One Interpreter</h1>
             <p className="detector__subtitle">
-              Show a sign language letter to the camera, and I will read it out loud.
+              Show an expression to the camera, and I will read it out loud.
             </p>
           </div>
           <div className="detector__status-badges">
@@ -424,10 +421,22 @@ export default function SignDetector() {
               <p className="detector__pred-label">🎯 How It Works</p>
               <ul className="detector__tips-list" style={{ fontSize: '1rem', lineHeight: '1.6', margin: 0 }}>
                 <li>✅ <strong>Turn on the camera</strong> to start.</li>
-                <li>🖐️ <strong>Show a sign</strong> to the camera clearly and hold it to register the letter.</li>
-                <li>🔤 <strong>Form words and sentences</strong> letter by letter.</li>
-                <li>🔊 Use the controls to add spaces, correct mistakes, and <strong>speak the whole sentence out loud!</strong></li>
+                <li>🖐️ <strong>Show an expression</strong> to the camera clearly and hold it to register.</li>
+                <li>🔤 <strong>Form full thoughts</strong> phrase by phrase.</li>
+                <li>🔊 Use the controls to manage your sentence and <strong>speak it out loud!</strong></li>
               </ul>
+            </div>
+
+            <div className="detector__dictionary glass-card" style={{ width: '100%', textAlign: 'left', marginTop: '1rem' }}>
+              <p className="detector__pred-label">📚 Supported Sentences Reference ({GESTURE_DICTIONARY.length} mapped)</p>
+              <p style={{ color: '#666', marginBottom: '1rem', fontSize: '0.95rem' }}>The interpreter now maps <strong>dozens</strong> of static finger configurations. Play around with different hand shapes to discover them in real-time!</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.8rem', fontSize: '0.9rem', color: '#334155', maxHeight: '500px', overflowY: 'auto', padding: '0.5rem' }}>
+                {GESTURE_DICTIONARY.map((g, i) => (
+                   <div key={i} style={{ background: 'rgba(255,255,255,0.7)', padding: '0.8rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                      <span style={{ fontSize: '1.2rem', marginRight: '0.5rem' }}>{g.emoji}</span> <strong>{g.phrase}</strong>
+                   </div>
+                ))}
+              </div>
             </div>
 
           </div>

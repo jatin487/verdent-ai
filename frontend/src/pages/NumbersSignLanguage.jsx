@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useA11y } from '../context/AccessibilityContext'
+import { useAuth } from '../context/AuthContext'
+import { saveProgress } from '../services/progressService'
 import './CoursePage.css'
 
 const NUMBERS_1_20 = [
@@ -27,15 +29,48 @@ const NUMBERS_1_20 = [
 
 export default function NumbersSignLanguage({ setPage }) {
   const { settings } = useA11y()
+  const { currentUser } = useAuth()
   const [stepIndex, setStepIndex] = useState(0)
+  const [seen, setSeen] = useState(new Set([0]))
   const selectedNum = NUMBERS_1_20[stepIndex]?.num ?? 1
 
+  // Save progress whenever a new number is visited
+  useEffect(() => {
+    if (currentUser) {
+      const newSeen = new Set(seen);
+      newSeen.add(stepIndex);
+      setSeen(newSeen);
+      const pct = Math.round((newSeen.size / 20) * 100);
+      saveProgress(currentUser.uid, 'numbers', {
+        completedCount: newSeen.size,
+        currentNumber: NUMBERS_1_20[stepIndex]?.num,
+        currentStep: stepIndex + 1,
+        total: 20,
+        percent: pct,
+        email: currentUser.email,
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stepIndex]);
+
   const speak = (text) => {
-    if (!settings.tts || !window.speechSynthesis) return
-    window.speechSynthesis.cancel()
-    const utt = new SpeechSynthesisUtterance(String(text))
-    utt.rate = 0.9
-    window.speechSynthesis.speak(utt)
+    if (!settings.tts || !window.speechSynthesis) return;
+
+    window.speechSynthesis.cancel();
+    
+    setTimeout(() => {
+      const utt = new SpeechSynthesisUtterance(String(text));
+      utt.rate = 0.9;
+      
+      window._verbalUtterances = window._verbalUtterances || [];
+      window._verbalUtterances.push(utt);
+      
+      utt.onend = () => {
+         window._verbalUtterances = window._verbalUtterances.filter(u => u !== utt);
+      };
+      
+      window.speechSynthesis.speak(utt);
+    }, 50);
   }
 
   const goToStep = (idx) => {

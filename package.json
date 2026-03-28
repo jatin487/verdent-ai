@@ -12,6 +12,7 @@
         "concurrently": "^8.2.2"
     },
     "dependencies": {
+        "firebase": "^12.11.0",
         "framer-motion": "^12.36.0"
     }
 }

@@ -1,19 +1,20 @@
 import { useState } from "react";
 import { A11yText } from "../context/AccessibilityContext";
+import { useAuth } from "../context/AuthContext";
 import "./Dashboard.css";
 
 const COURSES = [
   {
     id: 1,
     emoji: "🤝",
-    title: "ASL Alphabet Basics",
+    title: "ISL Alphabet Basics",
     category: "Sign Language",
     level: "Beginner",
     badgeCls: "badge-violet",
-    progress: 72,
+    progress: 92,
     lessons: 12,
     duration: "2h 30m",
-    desc: "Learn all 26 American Sign Language alphabet letters with real AI-powered feedback.",
+    desc: "Learn the Indian Sign Language alphabet letters with real-time feedback.",
   },
   {
     id: 2,
@@ -22,7 +23,7 @@ const COURSES = [
     category: "Sign Language",
     level: "Beginner",
     badgeCls: "badge-violet",
-    progress: 45,
+    progress: 85,
     lessons: 8,
     duration: "1h 45m",
     desc: "Master signing numbers 1–100 for everyday communication.",
@@ -34,7 +35,7 @@ const COURSES = [
     category: "Visually Impaired",
     level: "Beginner",
     badgeCls: "badge-sky",
-    progress: 20,
+    progress: 70,
     lessons: 10,
     duration: "3h 00m",
     desc: "Audio-first course teaching Braille reading through sound and tactile description.",
@@ -46,7 +47,7 @@ const COURSES = [
     category: "Communication",
     level: "Intermediate",
     badgeCls: "badge-green",
-    progress: 89,
+    progress: 95,
     lessons: 15,
     duration: "4h 15m",
     desc: "AI-guided exercises to improve pronunciation, fluency, and confidence.",
@@ -58,7 +59,7 @@ const COURSES = [
     category: "Arts",
     level: "All Levels",
     badgeCls: "badge-amber",
-    progress: 35,
+    progress: 80,
     lessons: 20,
     duration: "5h 00m",
     desc: "Fully accessible art course adapted for motor and sensory differences.",
@@ -70,7 +71,7 @@ const COURSES = [
     category: "Technology",
     level: "Intermediate",
     badgeCls: "badge-sky",
-    progress: 58,
+    progress: 75,
     lessons: 18,
     duration: "6h 30m",
     desc: "Build accessible web apps — learn coding and a11y principles side-by-side.",
@@ -82,7 +83,7 @@ const COURSES = [
     category: "Accessible Tool",
     level: "All Levels",
     badgeCls: "badge-amber",
-    progress: 0,
+    progress: 60,
     lessons: 1,
     duration: "Live",
     desc: "Real-time subtitles for anything spoken into the camera.",
@@ -94,7 +95,7 @@ const COURSES = [
     category: "Accessible Tool",
     level: "All Levels",
     badgeCls: "badge-green",
-    progress: 0,
+    progress: 65,
     lessons: 1,
     duration: "Live",
     desc: "Use your camera to translate sign language gestures into real-time text and speech."
@@ -115,8 +116,14 @@ const COURSE_PAGE_MAP = {
 };
 
 export default function Dashboard({ setPage }) {
+  const { currentUser, logout } = useAuth();
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
+
+  const handleLogout = async () => {
+     await logout();
+     setPage('home');
+  };
 
   const visible = COURSES.filter((c) => {
     const matchLevel = filter === "All" || c.level === filter;
@@ -131,83 +138,74 @@ export default function Dashboard({ setPage }) {
   );
 
   return (
-    <main id="main-content" className="dashboard">
-      <div className="container">
-        {/* Header */}
-        <div className="dashboard__header fade-in-up">
-          <div>
-            <A11yText as="h1" className="dashboard__title">
-              Your Learning Journey
-            </A11yText>
-            <p className="dashboard__subtitle">
-              {COURSES.length} courses · Overall progress:{" "}
-              <strong className="gradient-text">{totalProgress}%</strong>
-            </p>
-          </div>
-          <div className="dashboard__overall-progress glass-card">
-            <div className="dashboard__ring">
-              <svg
-                viewBox="0 0 64 64"
-                aria-label={`${totalProgress}% overall progress`}
-              >
-                <circle
-                  cx="32"
-                  cy="32"
-                  r="26"
-                  fill="none"
-                  stroke="rgba(255,255,255,0.07)"
-                  strokeWidth="6"
-                />
-                <circle
-                  cx="32"
-                  cy="32"
-                  r="26"
-                  fill="none"
-                  stroke="url(#prog-grad)"
-                  strokeWidth="6"
-                  strokeLinecap="round"
-                  strokeDasharray={`${2 * Math.PI * 26}`}
-                  strokeDashoffset={`${2 * Math.PI * 26 * (1 - totalProgress / 100)}`}
-                  transform="rotate(-90 32 32)"
-                />
-                <defs>
-                  <linearGradient
-                    id="prog-grad"
-                    x1="0%"
-                    y1="0%"
-                    x2="100%"
-                    y2="0%"
-                  >
-                    <stop offset="0%" stopColor="#7c6af7" />
-                    <stop offset="100%" stopColor="#38bdf8" />
-                  </linearGradient>
-                </defs>
-              </svg>
-              <span className="dashboard__ring-label">{totalProgress}%</span>
+    <main id="main-content" className="dashboard-root fade-in-up">
+      {/* Student Hub Hero */}
+      <section className="dashboard-hero container">
+         <div className="hero-hub">
+            <div className="hub-content">
+            <div className="hub-header-row">
+               <div className="hub-badge">Student Dashboard</div>
+               <div className="hub-header-actions">
+                  <button className="btn btn-ghost btn-sm" onClick={() => setPage('transcriber')}>🎥 Live Transcriber</button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => setPage('signdetector')}>🤟 Sign Detector</button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => setPage('home')}>🏠 Home</button>
+                  <button className="btn btn-ghost btn-sm" onClick={handleLogout}>🚪 Logout</button>
+               </div>
             </div>
-            <span className="dashboard__ring-text">Overall</span>
-          </div>
-        </div>
+               <A11yText as="h1" className="hub-title">
+                  Welcome Back, <span className="gradient-text">{currentUser?.email?.split('@')[0] || 'Learner'}</span>! ✨
+               </A11yText>
+               <A11yText as="p" className="hub-subtitle">
+                  You've completed <strong>{totalProgress}%</strong> of your current learning journey. Ready to pick up where you left off?
+               </A11yText>
+               <div className="hub-stats">
+                  <div className="hub-stat">
+                     <span className="stat-num">8</span>
+                     <span className="stat-label">Active Courses</span>
+                  </div>
+                  <div className="hub-stat divider"></div>
+                  <div className="hub-stat">
+                     <span className="stat-num">124</span>
+                     <span className="stat-label">Total Lessons</span>
+                  </div>
+               </div>
+            </div>
+            
+            <div className="hub-progress-card glass-card">
+               <div className="dashboard__ring">
+                  <svg viewBox="0 0 64 64">
+                     <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(0,0,0,0.05)" strokeWidth="6" />
+                     <circle cx="32" cy="32" r="26" fill="none" stroke="url(#hub-grad)" strokeWidth="6" strokeLinecap="round" strokeDasharray={`${2 * Math.PI * 26}`} strokeDashoffset={`${2 * Math.PI * 26 * (1 - totalProgress / 100)}`} transform="rotate(-90 32 32)" />
+                     <defs>
+                        <linearGradient id="hub-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                           <stop offset="0%" stopColor="#7c6af7" />
+                           <stop offset="100%" stopColor="#38bdf8" />
+                        </linearGradient>
+                     </defs>
+                  </svg>
+                  <span className="dashboard__ring-label">{totalProgress}%</span>
+               </div>
+               <span className="hub-overall-label">Overall Mastery</span>
+            </div>
+         </div>
+      </section>
 
+      <div className="container dashboard-main">
         {/* Search + Filter */}
-        <div className="dashboard__controls fade-in-up delay-1">
+        <div className="dashboard__controls">
           <div className="dashboard__search-wrap">
             <span aria-hidden="true">🔍</span>
             <input
               id="course-search"
               type="search"
               className="dashboard__search"
-              placeholder="Search courses…"
+              placeholder="Search lessons or tools…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               aria-label="Search courses"
             />
           </div>
-          <div
-            className="dashboard__filters"
-            role="group"
-            aria-label="Filter by level"
-          >
+          <div className="dashboard__filters" role="group" aria-label="Filter by level">
             {LEVELS.map((l) => (
               <button
                 key={l}
@@ -222,87 +220,34 @@ export default function Dashboard({ setPage }) {
         </div>
 
         {/* Course Grid */}
-        <div className="dashboard__grid" role="list" aria-label="Course list">
-          {visible.length === 0 ? (
-            <div className="dashboard__empty">
-              <span>😕</span>
-              <p>No courses match your search.</p>
-            </div>
-          ) : (
-            visible.map((c, i) => (
-              <article
-                key={c.id}
-                className={`course-card glass-card fade-in-up delay-${(i % 5) + 1}`}
-                role="listitem"
-                aria-labelledby={`course-title-${c.id}`}
+        <div className="dashboard__grid" role="list">
+          {visible.map((c, i) => (
+            <article key={c.id} className={`course-card glass-card fade-in-up delay-${(i % 5) + 1}`}>
+              <div className="course-card__top">
+                <span className="course-card__emoji">{c.emoji}</span>
+                <span className={`badge ${c.badgeCls}`}>{c.category}</span>
+              </div>
+              <A11yText as="h2" className="course-card__title">{c.title}</A11yText>
+              <p className="course-card__desc">{c.desc}</p>
+              
+              <div className="course-card__progress">
+                <div className="course-card__progress-label">
+                  <span className="gradient-text">{c.progress}% done</span>
+                </div>
+                <div className="progress-bar">
+                  <div className="progress-bar__fill" style={{ width: `${c.progress}%` }} />
+                </div>
+              </div>
+
+              <button
+                className={`btn course-card__btn ${COURSE_PAGE_MAP[c.id] ? "btn-primary" : "btn-ghost"}`}
+                onClick={() => COURSE_PAGE_MAP[c.id] ? setPage(COURSE_PAGE_MAP[c.id]) : setPage("dashboard")}
+                disabled={!COURSE_PAGE_MAP[c.id]}
               >
-                <div className="course-card__top">
-                  <span className="course-card__emoji animate-float">
-                    {c.emoji}
-                  </span>
-                  <span className={`badge ${c.badgeCls}`}>{c.category}</span>
-                </div>
-
-                <A11yText
-                  as="h2"
-                  id={`course-title-${c.id}`}
-                  className="course-card__title"
-                >
-                  {c.title}
-                </A11yText>
-                <p className="course-card__desc">{c.desc}</p>
-
-                <div className="course-card__meta">
-                  <span>📚 {c.lessons} lessons</span>
-                  <span>⏱ {c.duration}</span>
-                  <span
-                    className={`badge ${c.level === "Beginner" ? "badge-green" : c.level === "Intermediate" ? "badge-amber" : "badge-sky"}`}
-                  >
-                    {c.level}
-                  </span>
-                </div>
-
-                <div className="course-card__progress">
-                  <div className="course-card__progress-label">
-                    <span>Progress</span>
-                    <span className="gradient-text">{c.progress}%</span>
-                  </div>
-                  <div
-                    className="progress-bar"
-                    role="progressbar"
-                    aria-valuenow={c.progress}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                  >
-                    <div
-                      className="progress-bar__fill"
-                      style={{ width: `${c.progress}%` }}
-                    />
-                  </div>
-                </div>
-
-                <button
-                  className={`btn course-card__btn ${COURSE_PAGE_MAP[c.id] ? "btn-primary" : "btn-ghost"}`}
-                  id={`continue-course-${c.id}`}
-                  onClick={() =>
-                    COURSE_PAGE_MAP[c.id]
-                      ? setPage(COURSE_PAGE_MAP[c.id])
-                      : setPage("dashboard")
-                  }
-                  disabled={!COURSE_PAGE_MAP[c.id]}
-                  title={!COURSE_PAGE_MAP[c.id] ? "Coming Soon" : undefined}
-                >
-                  {!COURSE_PAGE_MAP[c.id]
-                    ? "🔜 Coming Soon"
-                    : c.progress === 0
-                      ? "▶ Start"
-                      : c.progress === 100
-                        ? "✓ Review"
-                        : "▶ Continue"}
-                </button>
-              </article>
-            ))
-          )}
+                {COURSE_PAGE_MAP[c.id] ? "Continue" : "Soon"}
+              </button>
+            </article>
+          ))}
         </div>
       </div>
     </main>
