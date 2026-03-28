@@ -1,15 +1,31 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useA11y } from '../context/AccessibilityContext';
 import { GESTURE_DICTIONARY } from '../data/gestures';
+import { ISL_SIGNS } from '../data/islSigns';
 import {
   broadcastSign,
   subscribeToClassSession,
   startClassSession,
   endClassSession,
 } from '../services/virtualClassService';
+import './VirtualClass.css';
 
 const POSE_HOLD_MS = 1200;
 const ROOM_NAME = 'VardaanInclusiveClassroom_101';
+
+// ISL Specific Detection Mapping
+const ISL_MAPPING = {
+  'TUCKED-0000': { phrase: "Letter A", emoji: "✊" },
+  'UP-1111':     { phrase: "Letter B", emoji: "🤚" },
+  'OUT-0000':    { phrase: "Letter C", emoji: "🫲" },
+  'TUCKED-1000': { phrase: "Letter D", emoji: "☝️" },
+  'OUT-1111':    { phrase: "Letter E", emoji: "🖐️" },
+  'SPECIAL-OK':  { phrase: "Letter F", emoji: "👌" },
+  'UP-1100':     { phrase: "Letter V/H", emoji: "✌️" },
+  'TUCKED-0001': { phrase: "Letter I", emoji: "☝️" },
+  'OUT-1000':    { phrase: "Letter L", emoji: "🫲" },
+};
 
 const HAND_CONNECTIONS = [
   [0,1],[1,2],[2,3],[3,4],
@@ -20,7 +36,23 @@ const HAND_CONNECTIONS = [
   [5,9],[9,13],[13,17],
 ];
 
-function drawLandmarks(ctx, landmarks, W, H) {
+function drawLandmarks(ctx, landmarks, W, H, video) {
+  if (!ctx) return;
+
+  // 1. Draw the Video Frame (Mirrored)
+  ctx.save();
+  ctx.scale(-1, 1);
+  ctx.translate(-W, 0);
+  if (video && video.readyState >= 2) {
+    ctx.drawImage(video, 0, 0, W, H);
+  } else {
+    // Fill background if video not ready
+    ctx.fillStyle = "#111";
+    ctx.fillRect(0, 0, W, H);
+  }
+  ctx.restore();
+
+  // 2. Landmarks Overlay
   if (!landmarks || landmarks.length === 0) return;
 
   // Calculate bounding box for hand only (for that clean 'vibe' of the SignDetector)
@@ -174,22 +206,23 @@ export default function VirtualClass({ onBack, setPage }) {
     else if (thumbOut)  thState = 'OUT';
 
     const code = `${thState}-${indexExt?'1':'0'}${middleExt?'1':'0'}${ringExt?'1':'0'}${pinkyExt?'1':'0'}`;
-    let match = GESTURE_DICTIONARY.find(g => g.code === code);
-
-    // Advanced Distance Logic (Same as SignDetector)
+    
+    // Priority: ISL Mapping
+    let match = ISL_MAPPING[code];
+    
+    // Fallback to advanced distance logic
     const thumbIndexDist = Math.hypot(landmarks[4].x - landmarks[8].x, landmarks[4].y - landmarks[8].y);
     const thumbMiddleDist = Math.hypot(landmarks[4].x - landmarks[12].x, landmarks[4].y - landmarks[12].y);
     
     if (thumbIndexDist < palmSize * 0.6 && middleExt && ringExt && pinkyExt && !indexExt) {
-      match = GESTURE_DICTIONARY.find(g => g.code === 'SPECIAL-OK');
-    } else if (thumbIndexDist < palmSize * 0.4 && thumbMiddleDist < palmSize * 0.4 && !ringExt && !pinkyExt) {
-      match = GESTURE_DICTIONARY.find(g => g.code === 'SPECIAL-MONEY');
-    } else if (thumbIndexDist < palmSize * 0.4 && !middleExt && !ringExt && !pinkyExt && !thumbOut && !thumbUp && !thumbDown) {
-      match = GESTURE_DICTIONARY.find(g => g.code === 'SPECIAL-PINCH');
+      match = ISL_MAPPING['SPECIAL-OK'];
     }
 
+    // Secondary Fallback: General Dictionary
+    if (!match) match = GESTURE_DICTIONARY.find(g => g.code === code);
+
     const currentDetect = match ? match.phrase : null;
-    const currentEmoji  = match ? match.emoji  : '🤟';
+    const currentEmoji  = match ? match.emoji  : '🖐️';
     setDetectedSign(currentDetect);
 
     // Common analysis logic (for both roles, but only teacher broadcasts)
@@ -282,24 +315,26 @@ export default function VirtualClass({ onBack, setPage }) {
       hands.onResults(results => {
         const canvas = canvasRef.current;
         const video  = videoRef.current;
-        if (!canvas || !video || video.paused) return;
+        if (!canvas || !video) return;
 
-        // Sync canvas size to internal video resolution
-        if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
+        // Ensure canvas has valid dimensions before drawing
+        const W = video.videoWidth || 640;
+        const H = video.videoHeight || 480;
+        
+        if (canvas.width !== W || canvas.height !== H) {
+          canvas.width = W;
+          canvas.height = H;
         }
 
-        const W = canvas.width;
-        const H = canvas.height;
         const ctx = canvas.getContext('2d');
         
+        // Always draw the background (fixes black screen)
+        drawLandmarks(ctx, results.multiHandLandmarks?.[0] || [], W, H, video);
+
         if (results.multiHandLandmarks?.length > 0) {
-          drawLandmarks(ctx, results.multiHandLandmarks[0], W, H);
           frameCount++;
           if (frameCount % 5 === 0) analyzeHand(results.multiHandLandmarks[0]);
         } else {
-          ctx.clearRect(0, 0, W, H);
           analyzeHand(null);
         }
       });
@@ -634,9 +669,9 @@ export default function VirtualClass({ onBack, setPage }) {
           border: 1px solid rgba(124,106,247,0.2);
           min-height: 200px;
         }
-        .vc-video-wrap { position: relative; width: 100%; aspect-ratio: 4/3; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .vc-video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: block; }
-        .vc-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; transform: scaleX(-1); }
+        .vc-video-wrap { position: relative; width: 100%; aspect-ratio: 4/3; background: #000; border-radius: 8px; overflow: hidden; }
+        .vc-video { position: absolute; top: 0; left: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+        .vc-canvas { width: 100%; height: 100%; display: block; background: #000; }
 
         .vc-overlay-sign {
           position: absolute; bottom: 0; left: 0; right: 0;
