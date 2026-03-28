@@ -1,65 +1,9 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 import { useA11y } from '../context/AccessibilityContext'
-import { ASL_SIGNS } from '../data/aslSigns'
 import './SignDetector.css'
 
 const BACKEND_URL = 'http://localhost:5001'
-const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
-const NUMBERS_1_10 = [
-  { num: 1, hint: 'Index finger up', emoji: '☝️' },
-  { num: 2, hint: 'Peace sign — index + middle', emoji: '✌️' },
-  { num: 3, hint: 'Three fingers up', emoji: '🤟' },
-  { num: 4, hint: 'Four fingers up, thumb tucked', emoji: '🖖' },
-  { num: 5, hint: 'All 5 fingers spread', emoji: '🖐️' },
-  { num: 6, hint: 'Thumb touches pinky, others up', emoji: '🤙' },
-  { num: 7, hint: 'Thumb touches ring finger', emoji: '7️⃣' },
-  { num: 8, hint: 'Thumb touches middle finger', emoji: '8️⃣' },
-  { num: 9, hint: 'Thumb touches index finger', emoji: '9️⃣' },
-  { num: 10, hint: 'Thumbs up or shake fist', emoji: '👍' },
-]
-
-// Step-by-step: A–Z letters + 1–10 numbers
-const LETTER_STEPS = ALPHABET.map((letter, i) => ({
-  id: i + 1,
-  type: 'letter',
-  value: letter,
-  label: `Sign the letter ${letter}`,
-  hint: ASL_SIGNS[letter]?.desc || `ASL sign for ${letter}`,
-  emoji: ASL_SIGNS[letter]?.emoji || letter,
-}))
-const NUMBER_STEPS = NUMBERS_1_10.map((n, i) => ({
-  id: 27 + i,
-  type: 'number',
-  value: n.num,
-  label: `Sign the number ${n.num}`,
-  hint: n.hint,
-  emoji: n.emoji,
-}))
-const STEPS = [...LETTER_STEPS, ...NUMBER_STEPS]
-const POSE_HOLD_MS = 800
-
-function dist(a, b) {
-  return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2)
-}
-function detectNumberPose(landmarks) {
-  if (!landmarks || landmarks.length < 21) return null
-  const lm = landmarks
-  const palmCenter = {
-    x: (lm[0].x + lm[5].x + lm[9].x + lm[13].x + lm[17].x) / 5,
-    y: (lm[0].y + lm[5].y + lm[9].y + lm[13].y + lm[17].y) / 5,
-  }
-  const d4 = dist(lm[4], palmCenter), d8 = dist(lm[8], palmCenter)
-  const d12 = dist(lm[12], palmCenter), d16 = dist(lm[16], palmCenter), d20 = dist(lm[20], palmCenter)
-  const tips = [d4, d8, d12, d16, d20]
-  const extended = tips.map(d => d > 0.1)
-  const count = extended.filter(Boolean).length
-  if (d8 > 0.11 && !extended[2] && !extended[3] && !extended[4]) return 1
-  if (d8 > 0.11 && d12 > 0.11 && !extended[3] && !extended[4]) return 2
-  if (d8 > 0.11 && d12 > 0.11 && d16 > 0.11 && !extended[4]) return 3
-  if (d8 > 0.11 && d12 > 0.11 && d16 > 0.11 && d20 > 0.11 && d4 < 0.12) return 4
-  if (count >= 4 && d4 > 0.1) return 5
-  return null
-}
+const POSE_HOLD_MS = 1000
 
 // MediaPipe hand connections for drawing landmarks
 const HAND_CONNECTIONS = [
@@ -83,7 +27,6 @@ function drawLandmarks(ctx, landmarks, W, H) {
     maxY = Math.max(maxY, lm.y)
   }
   
-  // Add padding around hand (20% margin)
   const padX = (maxX - minX) * 0.2
   const padY = (maxY - minY) * 0.2
   minX = Math.max(0, minX - padX)
@@ -91,19 +34,16 @@ function drawLandmarks(ctx, landmarks, W, H) {
   maxX = Math.min(1, maxX + padX)
   maxY = Math.min(1, maxY + padY)
   
-  // Calculate crop dimensions
   const cropX = minX * W
   const cropY = minY * H
   const cropW = (maxX - minX) * W
   const cropH = (maxY - minY) * H
   
-  // Clear and crop canvas to hand area only
   ctx.clearRect(0, 0, W, H)
   ctx.save()
   ctx.rect(cropX, cropY, cropW, cropH)
   ctx.clip()
   
-  // Draw connections
   ctx.lineWidth = 3
   ctx.strokeStyle = 'rgba(124,106,247,0.95)'
   for (const [a, b] of HAND_CONNECTIONS) {
@@ -115,7 +55,6 @@ function drawLandmarks(ctx, landmarks, W, H) {
     ctx.stroke()
   }
   
-  // Draw larger, brighter dots
   ctx.fillStyle = '#38bdf8'
   for (const lm of landmarks) {
     ctx.beginPath()
@@ -123,7 +62,6 @@ function drawLandmarks(ctx, landmarks, W, H) {
     ctx.fill()
   }
   
-  // Draw outer ring for each dot
   ctx.strokeStyle = 'rgba(56,189,248,0.4)'
   ctx.lineWidth = 2
   for (const lm of landmarks) {
@@ -145,36 +83,83 @@ export default function SignDetector() {
 
   const [status, setStatus]     = useState('idle')   // idle | loading | active | error
   const [handsDetected, setHandsDetected] = useState(false)
-  // Step-by-step mode: validate hand poses (open → fist → etc.)
-  const [currentStep, setCurrentStep] = useState(0)
   const [detectedLetter, setDetectedLetter] = useState(null)
-  const [stepComplete, setStepComplete] = useState(false)
-  const holdStartRef = useRef(null)
-  const currentStepRef = useRef(0)
-  currentStepRef.current = currentStep
-  // "I Speak" and "Show me the sign"
-  const [spokenText, setSpokenText] = useState('')
-  const [showSignLetter, setShowSignLetter] = useState('')
+  const [registeredLetter, setRegisteredLetter] = useState(null)
+  const [sentence, setSentence] = useState('')
 
-  // ── TTS helper ───────────────────────────────────────────────────────────────
+  const holdStartRef = useRef(null)
+  const lastDetectedRef = useRef(null)
+  const confirmedRef = useRef(null)
+
+  // TTS helper for reading out the sign
   const speak = useCallback((text) => {
-    if (!settings.tts || !window.speechSynthesis) return
+    // Text-to-speech is mandatory
+    if (!window.speechSynthesis) return
     window.speechSynthesis.cancel()
     const utt = new SpeechSynthesisUtterance(text)
-    utt.rate = 0.95; utt.pitch = 1.1
+    utt.rate = 0.95
+    utt.pitch = 1.1
     window.speechSynthesis.speak(utt)
-  }, [settings.tts])
+  }, [])
 
-  // ── Step validation: letters via backend, numbers via client-side pose ─
-  const validateStep = useCallback(async (landmarks) => {
-    const stepIdx = currentStepRef.current
-    const step = STEPS[stepIdx]
-    if (!step) return
+  const analyzeHand = useCallback(async (landmarks) => {
+    if (!landmarks || landmarks.length < 21) {
+       holdStartRef.current = null
+       lastDetectedRef.current = null
+       confirmedRef.current = null
+       setDetectedLetter(null)
+       return
+    }
 
-    let matches = false
-    let display = null
+    let currentDetect = null
+    
+    // Evaluate heuristic expressions first
+    const indexExt = landmarks[8].y < landmarks[6].y;
+    const middleExt = landmarks[12].y < landmarks[10].y;
+    const ringExt = landmarks[16].y < landmarks[14].y;
+    const pinkyExt = landmarks[20].y < landmarks[18].y;
+    
+    // Use palm size for relative distance checks
+    const palmSize = Math.hypot(landmarks[5].x - landmarks[17].x, landmarks[5].y - landmarks[17].y);
+    const thumbIndexDist = Math.hypot(landmarks[4].x - landmarks[8].x, landmarks[4].y - landmarks[8].y);
+    const thumbOut = Math.abs(landmarks[4].x - landmarks[9].x) > (palmSize * 0.8);
+    
+    const isFist = !indexExt && !middleExt && !ringExt && !pinkyExt;
+    const isThumbUp = isFist && landmarks[4].y < landmarks[3].y && landmarks[4].y < landmarks[5].y - (palmSize * 0.3);
+    const isThumbDown = isFist && landmarks[4].y > landmarks[3].y && landmarks[4].y > landmarks[5].y + (palmSize * 0.3);
+    
+    const isILY = indexExt && !middleExt && !ringExt && pinkyExt && thumbOut;
+    const isCallMe = !indexExt && !middleExt && !ringExt && pinkyExt && thumbOut;
+    const isOk = thumbIndexDist < (palmSize * 0.6) && middleExt && ringExt && pinkyExt && !indexExt;
+    const isHello = indexExt && middleExt && ringExt && pinkyExt && thumbOut;
+    
+    // Additional expressions
+    const isPeace = indexExt && middleExt && !ringExt && !pinkyExt && !thumbOut;
+    const isWait = indexExt && !middleExt && !ringExt && !pinkyExt && !thumbOut;
+    const isRockOn = indexExt && !middleExt && !ringExt && pinkyExt && !thumbOut;
 
-    if (step.type === 'letter') {
+    if (isThumbUp) {
+      currentDetect = "I Understand";
+    } else if (isThumbDown) {
+      currentDetect = "I Don't Understand";
+    } else if (isILY) {
+      currentDetect = "I Love You";
+    } else if (isCallMe) {
+      currentDetect = "Call Me";
+    } else if (isOk) {
+      currentDetect = "Perfect";
+    } else if (isHello) {
+      currentDetect = "Hello";
+    } else if (isPeace) {
+      currentDetect = "Peace";
+    } else if (isWait) {
+      currentDetect = "Wait a Minute";
+    } else if (isRockOn) {
+      currentDetect = "Rock On";
+    }
+
+    // Fallback to ML model for letters
+    if (!currentDetect) {
       try {
         const flat = landmarks.flatMap(lm => [lm.x, lm.y, lm.z])
         const res = await fetch(`${BACKEND_URL}/predict`, {
@@ -183,47 +168,47 @@ export default function SignDetector() {
           body: JSON.stringify({ landmarks: flat }),
         })
         const data = await res.json()
-        display = data?.label ? data.label.toUpperCase() : null
-        setDetectedLetter(display)
-        matches = display === step.value
+        currentDetect = data?.label ? data.label.toUpperCase() : null
       } catch {
-        setDetectedLetter(null)
-        holdStartRef.current = null
-        return
+        currentDetect = null
+      }
+    }
+
+    setDetectedLetter(currentDetect)
+
+    if (currentDetect) {
+      if (lastDetectedRef.current === currentDetect) {
+        if (!holdStartRef.current) {
+          holdStartRef.current = Date.now()
+        } else if (Date.now() - holdStartRef.current >= POSE_HOLD_MS) {
+          if (confirmedRef.current !== currentDetect) {
+             setRegisteredLetter(currentDetect)
+             setSentence(prev => {
+                if (currentDetect.length > 1) {
+                  return prev + (prev.length > 0 && !prev.endsWith(' ') ? ' ' : '') + currentDetect + ' ';
+                }
+                return prev + currentDetect;
+             })
+             speak(currentDetect)
+             confirmedRef.current = currentDetect
+          }
+        }
+      } else {
+        lastDetectedRef.current = currentDetect
+        holdStartRef.current = Date.now()
       }
     } else {
-      // Number step: client-side pose detection (1-5) or hand-held for 6-10
-      const num = detectNumberPose(landmarks)
-      const handHeld = step.value >= 6 && step.value <= 10 && landmarks?.length >= 21
-      matches = num === step.value || handHeld
-      display = num != null ? String(num) : (handHeld ? String(step.value) : null)
-      setDetectedLetter(display)
+      lastDetectedRef.current = null
+      holdStartRef.current = null
+      confirmedRef.current = null
     }
 
-    if (!matches) {
-      holdStartRef.current = null
-      setStepComplete(false)
-      return
-    }
-
-    const now = Date.now()
-    if (!holdStartRef.current) holdStartRef.current = now
-    if (now - holdStartRef.current >= POSE_HOLD_MS) {
-      setStepComplete(true)
-      speak(`${step.value}! Step ${step.id} complete.`)
-      holdStartRef.current = null
-      if (stepIdx < STEPS.length - 1) {
-        setTimeout(() => {
-          setCurrentStep(c => c + 1)
-          setStepComplete(false)
-        }, 600)
-      }
-    }
   }, [speak])
 
-  // ── Start camera + MediaPipe ─────────────────────────────────────────────────
   const startCamera = useCallback(async () => {
     setStatus('loading')
+    setRegisteredLetter(null)
+    setDetectedLetter(null)
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } })
       if (videoRef.current) {
@@ -231,7 +216,6 @@ export default function SignDetector() {
         await videoRef.current.play()
       }
 
-      // Load MediaPipe Hands (loaded via CDN script tag)
       const waitForMP = (resolve, reject, t = 0) => {
         if (window.Hands) resolve()
         else if (t > 6000) reject(new Error('MediaPipe not loaded'))
@@ -265,17 +249,16 @@ export default function SignDetector() {
           setHandsDetected(true)
           drawLandmarks(ctx, lms, W, H)
 
-          // Step validation every 5 frames (~250ms)
           frameCount++
-          if (frameCount % 5 === 0) validateStep(lms)
+          if (frameCount % 6 === 0) analyzeHand(lms)
         } else {
           setHandsDetected(false)
+          analyzeHand(null)
         }
       })
 
       mpHandsRef.current = hands
 
-      // Process frames
       const processFrame = async () => {
         if (videoRef.current && videoRef.current.readyState >= 2) {
           await hands.send({ image: videoRef.current })
@@ -289,24 +272,28 @@ export default function SignDetector() {
       console.error(err)
       setStatus('error')
     }
-  }, [validateStep])
+  }, [analyzeHand])
 
-  // ── Cleanup on unmount ───────────────────────────────────────────────────────
+  const stopCamera = () => {
+    cancelAnimationFrame(animFrameRef.current)
+    if (videoRef.current?.srcObject) {
+      videoRef.current.srcObject.getTracks().forEach(t => t.stop())
+      videoRef.current.srcObject = null
+    }
+    setStatus('idle')
+    setHandsDetected(false)
+    setDetectedLetter(null)
+    setRegisteredLetter(null)
+    holdStartRef.current = null
+    lastDetectedRef.current = null
+    confirmedRef.current = null
+  }
+
   useEffect(() => {
     return () => {
-      cancelAnimationFrame(animFrameRef.current)
-      if (videoRef.current?.srcObject) {
-        videoRef.current.srcObject.getTracks().forEach(t => t.stop())
-      }
+      stopCamera()
     }
   }, [])
-
-  const resetSteps = () => {
-    setCurrentStep(0)
-    setStepComplete(false)
-    setDetectedLetter(null)
-    holdStartRef.current = null
-  }
 
   return (
     <main id="main-content" className="detector">
@@ -314,9 +301,9 @@ export default function SignDetector() {
         {/* Header */}
         <div className="detector__header fade-in-up">
           <div>
-            <h1 className="detector__title">🖐️ ASL Sign Detector (Age 10+)</h1>
+            <h1 className="detector__title">🖐️ One-on-One Interpreter</h1>
             <p className="detector__subtitle">
-              Step-by-step A–Z + 1–10: sign each letter and number, hold for ~1 second.
+              Show a sign language letter to the camera, and I will read it out loud.
             </p>
           </div>
           <div className="detector__status-badges">
@@ -326,202 +313,126 @@ export default function SignDetector() {
           </div>
         </div>
 
-        <div className="detector__layout">
-          {/* Camera Panel */}
-          <div className="detector__camera-panel glass-card fade-in-up delay-1">
-            <div className="detector__video-wrap">
-              {status === 'idle' && (
-                <div className="detector__placeholder">
-                  <div className="detector__placeholder-icon animate-float">👋</div>
-                  <p>Ready to learn? Click below to start!</p>
-                  <p className="detector__placeholder-sub">Make sure the camera can see your hands</p>
+        <div style={{ display: 'flex', justifyContent: 'center', margin: '0 auto', maxWidth: '700px', width: '100%' }}>
+          <div className="detector__steps-card glass-card fade-in-up delay-1" style={{ width: '100%', padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', textAlign: 'center' }}>
+            
+            <p className="detector__pred-label" style={{ fontSize: '1.5rem', marginBottom: '0' }}>Interpreter Result</p>
+            
+            <div className="detector__step-current glass-card" style={{ width: '100%', padding: status === 'active' ? '1rem' : '3rem', textAlign: 'center', background: 'rgba(255,255,255,0.7)', border: '2px solid rgba(124,106,247,0.2)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', minHeight: '400px', justifyContent: 'center' }}>
+              
+              {/* Camera Area merged inside the waiting box */}
+              {status === 'active' || status === 'loading' ? (
+                <div className="detector__video-wrap" style={{ position: 'relative', width: '100%', maxWidth: '500px', aspectRatio: '4/3', borderRadius: '1rem', overflow: 'hidden', backgroundColor: '#000', border: '2px dashed rgba(124,106,247,0.3)', margin: '0 auto' }}>
+                  {status === 'loading' && (
+                    <div className="detector__placeholder" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.8)' }}>
+                      <div className="detector__spinner" />
+                      <p>Getting ready…</p>
+                    </div>
+                  )}
+                  <video
+                    ref={videoRef}
+                    id="detector-video"
+                    className={`detector__video ${status === 'active' ? 'visible' : ''}`}
+                    playsInline muted
+                    aria-label="Webcam feed"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                  <canvas
+                    ref={canvasRef}
+                    className="detector__canvas"
+                    aria-hidden="true"
+                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+                  />
+                  {status === 'active' && handsDetected && (
+                    <div className="detector__hand-badge" style={{ position: 'absolute', top: '10px', left: '10px' }}>👋 Hand detected</div>
+                  )}
                 </div>
-              )}
+              ) : null}
+
               {status === 'error' && (
                 <div className="detector__placeholder">
                   <div style={{ fontSize: '3rem' }}>❌</div>
-                  <p>Oops! Camera didn't work</p>
-                  <p className="detector__placeholder-sub">Please let Verdent use your camera and try again.</p>
+                  <p>Oops! Camera didn't work. Please allow camera permissions.</p>
                 </div>
               )}
-              {status === 'loading' && (
-                <div className="detector__placeholder">
-                  <div className="detector__spinner" />
-                  <p>Getting ready…</p>
-                  <p className="detector__placeholder-sub">Starting up the AI hand recognizer</p>
+
+              {/* Text Results inside the box */}
+              {status === 'active' ? (
+                registeredLetter ? (
+                  <div style={{ marginTop: '1rem', width: '100%' }}>
+                    <h2 style={{ fontSize: '1.5rem', color: '#333' }}>Current Sign:</h2>
+                    <div className="detector__step-big-letter" style={{ fontSize: registeredLetter?.length > 1 ? '2rem' : '3rem', margin: '0.5rem 0', color: '#7c6af7', textShadow: '1px 1px 3px rgba(0,0,0,0.1)' }}>
+                      {registeredLetter}
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ marginTop: '1rem', width: '100%' }}>
+                    <h2 style={{ fontSize: '1.5rem', color: '#666' }}>Waiting for sign...</h2>
+                    {detectedLetter ? (
+                      <p style={{ fontSize: '1.2rem', color: '#7c6af7', marginTop: '1rem' }}>I see {detectedLetter}, hold steady...</p>
+                    ) : (
+                      <p style={{ fontSize: '1rem', color: '#999', marginTop: '1rem' }}>Show your hand to the camera</p>
+                    )}
+                  </div>
+                )
+              ) : (
+                status === 'idle' && (
+                  <>
+                    <div className="detector__step-big-letter" style={{ fontSize: '5rem', margin: '1rem 0', opacity: 0.2 }}>?</div>
+                    <h2 style={{ fontSize: '2rem', color: '#666' }}>Waiting for camera...</h2>
+                    <p style={{ fontSize: '1.2rem', color: '#999' }}>Click below to turn on the camera</p>
+                  </>
+                )
+              )}
+
+              {/* Sentence Display & Controls */}
+              <div style={{ marginTop: '1.5rem', width: '100%', borderTop: '1px solid rgba(0,0,0,0.1)', paddingTop: '1.5rem' }}>
+                <h3 style={{ fontSize: '1.2rem', color: '#555', marginBottom: '0.5rem' }}>Formed Sentence:</h3>
+                <div style={{ minHeight: '3rem', padding: '0.5rem 1rem', background: '#f8f9fa', borderRadius: '0.5rem', border: '1px solid #dee2e6', fontSize: '1.5rem', color: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', wordBreak: 'break-word' }}>
+                  {sentence || <span style={{ color: '#aaa', fontSize: '1rem' }}>No words formed yet...</span>}
                 </div>
-              )}
-              <video
-                ref={videoRef}
-                id="detector-video"
-                className={`detector__video ${status === 'active' ? 'visible' : ''}`}
-                playsInline muted
-                aria-label="Webcam feed"
-              />
-              <canvas
-                ref={canvasRef}
-                className="detector__canvas"
-                aria-hidden="true"
-              />
-              {status === 'active' && handsDetected && (
-                <div className="detector__hand-badge">👋 Hand detected</div>
-              )}
+                
+                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginTop: '1rem', flexWrap: 'wrap' }}>
+                  <button className="btn" style={{ background: '#e2e8f0', color: '#334155', padding: '0.5rem 1rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer' }} onClick={() => setSentence(prev => prev + ' ')}>␣ Space</button>
+                  <button className="btn" style={{ background: '#e2e8f0', color: '#334155', padding: '0.5rem 1rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer' }} onClick={() => setSentence(prev => prev.slice(0, -1))}>⌫ Backspace</button>
+                  <button className="btn" style={{ background: '#f87171', color: 'white', padding: '0.5rem 1rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer' }} onClick={() => {
+                    setSentence('');
+                    setRegisteredLetter(null);
+                    setDetectedLetter(null);
+                    confirmedRef.current = null;
+                    lastDetectedRef.current = null;
+                    holdStartRef.current = null;
+                  }}>🗑 Clear</button>
+                  <button className="btn" style={{ background: '#10b981', color: 'white', padding: '0.5rem 1.5rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', fontWeight: 'bold' }} onClick={() => { if(sentence.trim()) speak(sentence) }}>🔊 Speak Sentence</button>
+                </div>
+              </div>
             </div>
 
-            {/* Controls */}
-            <div className="detector__controls">
+            <div className="detector__controls" style={{ display: 'flex', justifyContent: 'center', width: '100%', marginTop: '1rem' }}>
               {status === 'idle' || status === 'error' ? (
-                <button className="btn btn-primary" id="start-camera-btn" onClick={startCamera}>
+                <button className="btn btn-primary" style={{ fontSize: '1.2rem', padding: '0.8rem 2rem' }} onClick={startCamera}>
                   🎬 Turn On Camera
                 </button>
               ) : (
-                <button className="btn btn-ghost" id="stop-camera-btn" onClick={() => {
-                  cancelAnimationFrame(animFrameRef.current)
-                  if (videoRef.current?.srcObject) {
-                    videoRef.current.srcObject.getTracks().forEach(t => t.stop())
-                    videoRef.current.srcObject = null
-                  }
-                  setStatus('idle'); setHandsDetected(false); resetSteps()
-                }}>
-                  ⏹ Stop Camera
+                <button className="btn btn-danger" style={{ fontSize: '1.2rem', padding: '0.8rem 2rem' }} onClick={stopCamera}>
+                  ⏹ Turn Off Camera
                 </button>
               )}
             </div>
-          </div>
-
-          {/* Prediction Panel */}
-          <div className="detector__right fade-in-up delay-2">
-            {/* Step-by-step: A–Z alphabet */}
-            <div className="detector__steps-card glass-card">
-              <p className="detector__pred-label">🔄 A–Z Step-by-step</p>
-              <p className="detector__steps-desc">Sign each letter (A–Z) and number (1–10). Hold for ~1 second. Step {currentStep + 1} of {STEPS.length}.</p>
-              <div className="detector__step-letters">
-                {STEPS.map((s, i) => (
-                  <span
-                    key={`${s.type}-${s.value}`}
-                    className={`detector__step-letter ${i === currentStep ? 'active' : ''} ${i < currentStep ? 'done' : ''}`}
-                  >
-                    {i < currentStep ? '✓' : s.value}
-                  </span>
-                ))}
-              </div>
-              <div className="detector__step-current glass-card">
-                <p className="detector__pred-label">Sign: {STEPS[currentStep]?.type === 'letter' ? 'Letter' : 'Number'} {STEPS[currentStep]?.value}</p>
-                <div className="detector__step-big-letter">
-                  {STEPS[currentStep]?.value}
-                </div>
-                <p className="detector__step-hint">{STEPS[currentStep]?.hint}</p>
-                <p className={`detector__step-status ${detectedLetter === String(STEPS[currentStep]?.value) ? 'match' : ''}`}>
-                  {detectedLetter ? `Detected: ${detectedLetter}` : 'Show your hand…'}
-                </p>
-                {stepComplete && currentStep === STEPS.length - 1 && (
-                  <p className="detector__step-done">🎉 All {STEPS.length} steps complete!</p>
-                )}
-              </div>
-              <button className="btn btn-ghost btn-sm" onClick={resetSteps}>
-                ↩ Restart from A
-              </button>
-            </div>
-
-            {/* Show me the sign — Type a letter, see the hand gesture */}
-            <div className="detector__show-sign glass-card">
-              <p className="detector__pred-label">🖐️ Show me the sign</p>
-              <p className="detector__show-sign-desc">Type a letter or click below to see the ASL hand gesture</p>
-              <input
-                type="text"
-                maxLength={1}
-                className="detector__show-sign-input"
-                placeholder="Type letter (A–Z)"
-                value={showSignLetter || ''}
-                onChange={(e) => {
-                  const v = e.target.value.toUpperCase().slice(-1)
-                  setShowSignLetter(/[A-Z]/.test(v) ? v : '')
-                }}
-                aria-label="Type a letter to see its ASL sign"
-              />
-              {showSignLetter && ASL_SIGNS[showSignLetter] && (
-                <div className="detector__sign-visual">
-                  <div className="detector__sign-emoji">{ASL_SIGNS[showSignLetter].emoji}</div>
-                  <div className="detector__sign-demo">{ASL_SIGNS[showSignLetter].demo}</div>
-                  <p className="detector__sign-desc">{ASL_SIGNS[showSignLetter].desc}</p>
-                </div>
-              )}
-              <div className="detector__show-sign-grid">
-                {ALPHABET.map((l) => (
-                  <button
-                    key={l}
-                    type="button"
-                    className={`detector__show-sign-cell ${showSignLetter === l ? 'active' : ''}`}
-                    onClick={() => setShowSignLetter(l)}
-                    aria-label={`Show ASL sign for ${l}`}
-                  >
-                    {l}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* I Speak — Show what you say */}
-            <div className="detector__speak-card glass-card">
-              <p className="detector__pred-label">🗣️ I Speak — Show what you say</p>
-              <p className="detector__speak-desc">Type words so the other person can see them on screen</p>
-              <div className="detector__spoken-display" aria-live="polite">
-                {spokenText || <span className="detector__sentence-placeholder">Type below…</span>}
-              </div>
-              <div className="detector__speak-controls">
-                <input
-                  type="text"
-                  className="detector__speak-input"
-                  placeholder="Type words here…"
-                  value={spokenText}
-                  onChange={(e) => setSpokenText(e.target.value.toUpperCase())}
-                  aria-label="Type words to show"
-                />
-                <button className="btn btn-ghost btn-sm" onClick={() => setSpokenText('')} disabled={!spokenText}>
-                  Clear
-                </button>
-              </div>
-              {spokenText && (
-                <div className="detector__spelled-letters">
-                  {spokenText.split('').map((char, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      className={`detector__spelled-char ${/[A-Z]/.test(char) ? 'letter' : ''}`}
-                      onClick={() => setShowSignLetter(char)}
-                      title={`Show sign for ${char}`}
-                    >
-                      {char === ' ' ? '␣' : char}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* How to use */}
-            <div className="detector__tips glass-card">
+            
+            <div className="detector__tips glass-card" style={{ width: '100%', textAlign: 'left', marginTop: '1rem' }}>
               <p className="detector__pred-label">🎯 How It Works</p>
-              <ol className="detector__tips-list">
-                <li>Click <strong>🎬 Turn On Camera</strong> and allow camera access</li>
-                <li>Sign <strong>A–Z</strong> then <strong>1–10</strong> in order</li>
-                <li>Hold each sign steady for ~1 second to advance</li>
-                <li>Use "Show me the sign" below to see how each letter looks</li>
-                <li>Backend on port 5001 for letters; numbers use camera detection</li>
-              </ol>
-            </div>
-
-            {/* Fun Challenge */}
-            <div className="detector__tips glass-card" style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.1), rgba(59,130,246,0.1))' }}>
-              <p className="detector__pred-label">💡 Tip</p>
-              <ul className="detector__tips-list">
-                <li>Hold the pose steady for about 1 second — no random letters!</li>
-                <li>Use "Show me the sign" below to see how each letter looks</li>
+              <ul className="detector__tips-list" style={{ fontSize: '1rem', lineHeight: '1.6', margin: 0 }}>
+                <li>✅ <strong>Turn on the camera</strong> to start.</li>
+                <li>🖐️ <strong>Show a sign</strong> to the camera clearly and hold it to register the letter.</li>
+                <li>🔤 <strong>Form words and sentences</strong> letter by letter.</li>
+                <li>🔊 Use the controls to add spaces, correct mistakes, and <strong>speak the whole sentence out loud!</strong></li>
               </ul>
             </div>
+
           </div>
         </div>
       </div>
-
     </main>
   )
 }

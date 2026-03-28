@@ -1,20 +1,33 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 
 const LiveSpeechPanel = () => {
   const [transcript, setTranscript] = useState("");
+  const [isCameraOn, setIsCameraOn] = useState(false);
   const videoRef = useRef(null);
   const recognitionRef = useRef(null);
 
-  useEffect(() => {
-    startCamera();
-  }, []);
-
   const startCamera = async () => {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: false,
-    });
-    videoRef.current.srcObject = stream;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: false,
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        setIsCameraOn(true);
+      }
+    } catch (err) {
+      console.error("Camera access denied:", err);
+    }
+  };
+
+  const stopCamera = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const tracks = videoRef.current.srcObject.getTracks();
+      tracks.forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+      setIsCameraOn(false);
+    }
   };
 
   const startListening = () => {
@@ -52,7 +65,12 @@ const LiveSpeechPanel = () => {
       <div style={styles.panel}>
         {/* Video */}
         <div style={styles.videoBox}>
-          <video ref={videoRef} autoPlay muted style={styles.video} />
+          <video ref={videoRef} autoPlay muted style={{...styles.video, display: isCameraOn ? 'block' : 'none'}} />
+          {!isCameraOn && (
+            <div style={{...styles.video, background: '#ccc', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px'}}>
+              <p>Camera is off</p>
+            </div>
+          )}
         </div>
 
         {/* Live Text */}
@@ -63,6 +81,11 @@ const LiveSpeechPanel = () => {
       </div>
 
       <div style={styles.buttons}>
+        {!isCameraOn ? (
+          <button onClick={startCamera}>📷 Turn On Camera</button>
+        ) : (
+          <button onClick={stopCamera}>🛑 Turn Off Camera</button>
+        )}
         <button onClick={startListening}>🎤 Start Listening</button>
         <button onClick={speakText}>🔊 Speak</button>
       </div>
