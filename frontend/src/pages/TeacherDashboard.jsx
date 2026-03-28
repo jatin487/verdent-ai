@@ -3,12 +3,12 @@ import { useAuth } from '../context/AuthContext';
 import { subscribeToAllProgress } from '../services/progressService';
 import './TeacherDashboard.css';
 
+
 export default function TeacherDashboard({ setPage }) {
   const { logout } = useAuth();
-  const [meetingActive, setMeetingActive] = useState(false);
   const [students, setStudents] = useState([]);
   const [activeTab, setActiveTab] = useState('students'); // 'students' | 'meeting'
-  const roomName = "VardaanInclusiveClassroom_101";
+  // const roomName = "VardaanInclusiveClassroom_101";
 
   // Real-time Firestore listener for all student progress
   useEffect(() => {
@@ -160,27 +160,15 @@ export default function TeacherDashboard({ setPage }) {
         {activeTab === 'meeting' && (
           <div className="teacher-panel fade-in-up">
             <h2 className="panel-title">🎥 Live Virtual Classroom</h2>
-            <p className="panel-sub">Host accessible live classes with built-in captions and chat.</p>
-            {!meetingActive ? (
-              <div className="meeting-placeholder glass-card">
-                <div className="meeting-icon">🎓</div>
-                <h3>Ready to teach?</h3>
-                <p>Click below to start your live session with students.</p>
-                <button className="btn btn-primary btn-lg" onClick={() => setMeetingActive(true)}>
-                  🚀 Start Class Now
-                </button>
-              </div>
-            ) : (
-              <div className="meeting-active-wrap">
-                <button className="btn btn-danger mb-1" onClick={() => setMeetingActive(false)}>⏹ End Meeting</button>
-                <iframe
-                  title="Jitsi Meeting"
-                  allow="camera; microphone; fullscreen; display-capture"
-                  src={`https://meet.jit.si/${roomName}#config.prejoinPageEnabled=false`}
-                  className="meeting-iframe"
-                />
-              </div>
-            )}
+            <p className="panel-sub">Host accessible live classes with real-time sign broadcasting to students.</p>
+            <div className="meeting-placeholder glass-card">
+              <div className="meeting-icon">🎓</div>
+              <h3>Ready to teach?</h3>
+              <p>Click below to open the full virtual classroom where you can broadcast signs live to all connected students.</p>
+              <button className="btn btn-primary btn-lg" onClick={() => setPage('virtualclass')}>
+                🚀 Start Class Now
+              </button>
+            </div>
           </div>
         )}
       </div>

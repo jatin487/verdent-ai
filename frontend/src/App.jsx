@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { A11yProvider, useA11y } from "./context/AccessibilityContext";
+import { A11yProvider } from "./context/AccessibilityContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
 import Navbar from "./components/Navbar";
@@ -16,63 +16,79 @@ import SpeechTherapy from "./pages/SpeechTherapy";
 import CreativeArts from "./pages/CreativeArts";
 import CodingAccessibility from "./pages/CodingAccessibility";
 import VideoTranscriber from "./pages/VideoTranscriber";
+import VirtualClass from "./pages/VirtualClass";
 
 import RoleSelection from "./pages/RoleSelection";
 import AuthPage from "./pages/AuthPage";
 import TeacherDashboard from "./pages/TeacherDashboard";
 
-const PAGE_COMPONENTS = {
-  home: LandingPage,
-  dashboard: Dashboard,
-  signdetector: SignDetector,
-  alphabet: AlphabetLearner,
-  numbers: NumbersSignLanguage,
-  speech: SpeechTherapy,
-  arts: CreativeArts,
-  coding: CodingAccessibility,
-  transcriber: VideoTranscriber,
-  teacherDashboard: TeacherDashboard,
-};
+// Pages that are full-screen and manage their own layout (no shared Navbar)
+const FULL_SCREEN_PAGES = new Set([
+  "home", "dashboard", "transcriber", "teacherDashboard",
+  "alphabet", "signdetector", "virtualclass",
+]);
 
 function MainRouter() {
   const [page, setPage] = useState("home");
-  const [selectedRoleForAuth, setSelectedRoleForAuth] = useState('student');
+  const [selectedRoleForAuth, setSelectedRoleForAuth] = useState("student");
   const { currentUser, userRole } = useAuth();
 
-  // Route guarding / Custom pages
-  if (page === 'roleselect') {
-     return (
-       <RoleSelection onSelectRole={(role) => {
-         setSelectedRoleForAuth(role);
-         setPage('auth');
-       }} />
-     );
+  // ── Auth flow ──────────────────────────────────────────────────────────────
+  if (page === "roleselect") {
+    return (
+      <RoleSelection onSelectRole={(role) => {
+        setSelectedRoleForAuth(role);
+        setPage("auth");
+      }} />
+    );
   }
 
-  if (page === 'auth') {
+  if (page === "auth") {
     return (
-      <AuthPage 
-        role={selectedRoleForAuth} 
-        onBack={() => setPage('roleselect')}
+      <AuthPage
+        role={selectedRoleForAuth}
+        onBack={() => setPage("roleselect")}
         onAuthSuccess={() => {
-          // If login success, jump directly to dashboard
-          if (selectedRoleForAuth === 'teacher' || userRole === 'teacher') {
-            setPage('teacherDashboard');
+          if (selectedRoleForAuth === "teacher" || userRole === "teacher") {
+            setPage("teacherDashboard");
           } else {
-            setPage('dashboard');
+            setPage("dashboard");
           }
-        }} 
+        }}
       />
     );
   }
 
-  // Determine standard component
-  let PageComponent = PAGE_COMPONENTS[page] || LandingPage;
+  // ── Virtual class (full-screen, no Navbar/widgets) ─────────────────────────
+  if (page === "virtualclass") {
+    return (
+      <VirtualClass
+        setPage={setPage}
+        onBack={() => setPage(userRole === "teacher" ? "teacherDashboard" : "dashboard")}
+      />
+    );
+  }
 
-  // Render the default structure
+  // ── Standard pages ─────────────────────────────────────────────────────────
+  const PAGE_MAP = {
+    home: LandingPage,
+    dashboard: Dashboard,
+    signdetector: SignDetector,
+    alphabet: AlphabetLearner,
+    numbers: NumbersSignLanguage,
+    speech: SpeechTherapy,
+    arts: CreativeArts,
+    coding: CodingAccessibility,
+    transcriber: VideoTranscriber,
+    teacherDashboard: TeacherDashboard,
+  };
+
+  const PageComponent = PAGE_MAP[page] || LandingPage;
+  const showNav = !FULL_SCREEN_PAGES.has(page);
+
   return (
     <>
-      {page !== "home" && page !== "dashboard" && page !== "transcriber" && page !== "teacherDashboard" && page !== "alphabet" && page !== "signdetector" && <Navbar page={page} setPage={setPage} />}
+      {showNav && <Navbar page={page} setPage={setPage} />}
       <PageComponent setPage={setPage} />
       <A11yWidget />
       <LiveSpeechPanel />

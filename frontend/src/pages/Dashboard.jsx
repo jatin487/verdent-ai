@@ -146,6 +146,7 @@ export default function Dashboard({ setPage }) {
             <div className="hub-header-row">
                <div className="hub-badge">Student Dashboard</div>
                <div className="hub-header-actions">
+                  <button className="btn btn-primary btn-sm" onClick={() => setPage('virtualclass')}>🎥 Join Virtual Class</button>
                   <button className="btn btn-ghost btn-sm" onClick={() => setPage('transcriber')}>🎥 Live Transcriber</button>
                   <button className="btn btn-ghost btn-sm" onClick={() => setPage('signdetector')}>🤟 Sign Detector</button>
                   <button className="btn btn-ghost btn-sm" onClick={() => setPage('home')}>🏠 Home</button>
