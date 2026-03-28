@@ -1,0 +1,21 @@
+[build]
+  # Base directory for the frontend parts of your app
+  base = "frontend"
+  
+  # Step 1: Install dependencies
+  # Step 2: Build the React/Vite project
+  command = "npm install && npm run build"
+
+  # Directory that Netlify will serve (relative to the base directory)
+  publish = "dist"
+
+[build.environment]
+  # Set Node.js version to 20 or higher for modern dependencies
+  NODE_VERSION = "20"
+
+# Fix for Single Page Application routing (SPA)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  force = false
