@@ -2,15 +2,15 @@ export const GESTURE_DICTIONARY = [
   // Thumb TUCKED
   { code: "TUCKED-0000", emoji: "✊", phrase: "I am completely focused." },
   { code: "TUCKED-1000", emoji: "☝️", phrase: "Please wait a moment for me." },
-  { code: "TUCKED-0100", emoji: "🖕", phrase: "Please stop doing that immediately." }, // Non-profane interpretation
+  { code: "TUCKED-0100", emoji: "🖕", phrase: "Please stop doing that immediately." }, 
   { code: "TUCKED-0010", emoji: "💍", phrase: "I am already taken." },
   { code: "TUCKED-0001", emoji: "🤞", phrase: "I promise you it's the truth." },
-  { code: "TUCKED-1100", emoji: "✌️", phrase: "Peace and good vibes to you." },
+  { code: "TUCKED-1100", emoji: "👨‍🏫", phrase: "I am the Teacher for today." }, // UPDATED
   { code: "TUCKED-1010", emoji: "🤏", phrase: "I just need a little bit." },
   { code: "TUCKED-1001", emoji: "🤘", phrase: "This is completely awesome!" },
   { code: "TUCKED-0110", emoji: "👇", phrase: "Look down there." },
   { code: "TUCKED-0101", emoji: "👉", phrase: "That one over there." },
-  { code: "TUCKED-0011", emoji: "🎶", phrase: "I'm listening to the music." },
+  { code: "TUCKED-0011", emoji: "👨‍🎓", phrase: "I am a Student in this class." }, // UPDATED
   { code: "TUCKED-1110", emoji: "✋", phrase: "I need three items." },
   { code: "TUCKED-1101", emoji: "🤟", phrase: "I really like this." },
   { code: "TUCKED-1011", emoji: "🖐", phrase: "I need to take a break." },
@@ -18,8 +18,8 @@ export const GESTURE_DICTIONARY = [
   { code: "TUCKED-1111", emoji: "✋", phrase: "Please stop right there." },
 
   // Thumb OUT
-  { code: "OUT-0000", emoji: "👍", phrase: "I don't know what to do." }, // sideways thumb
-  { code: "OUT-1000", emoji: "👆", phrase: "I don't agree with this." }, // L-shape
+  { code: "OUT-0000", emoji: "👍", phrase: "I don't know what to do." }, 
+  { code: "OUT-1000", emoji: "🎬", phrase: "Let's start the lesson now." }, // UPDATED (L-Shape)
   { code: "OUT-0100", emoji: "👉", phrase: "He is the one." },
   { code: "OUT-0010", emoji: "👉", phrase: "She is the one." },
   { code: "OUT-0001", emoji: "🤙", phrase: "Please call me later." },
@@ -29,10 +29,10 @@ export const GESTURE_DICTIONARY = [
   { code: "OUT-0110", emoji: "🤌", phrase: "What are you trying to say?" },
   { code: "OUT-0101", emoji: "💅", phrase: "I am feeling confident." },
   { code: "OUT-0011", emoji: "👈", phrase: "They went that way." },
-  { code: "OUT-1110", emoji: "🖐", phrase: "I need four of these." },
+  { code: "OUT-1110", emoji: "🖐", font: "I need four of these." },
   { code: "OUT-1101", emoji: "🤙", phrase: "That is totally radical." },
   { code: "OUT-1011", emoji: "👋", phrase: "I have a quick question." },
-  { code: "OUT-0111", emoji: "🫱", phrase: "Welcome, come on in." },
+  { code: "OUT-0111", emoji: "✅", phrase: "Class is finished. Thank you!" }, // UPDATED
   { code: "OUT-1111", emoji: "👋", phrase: "Hello, how are you doing today?" },
 
   // Thumb UP
@@ -71,7 +71,7 @@ export const GESTURE_DICTIONARY = [
   { code: "DOWN-0111", emoji: "👎", phrase: "Please reconsider." },
   { code: "DOWN-1111", emoji: "👎", phrase: "I fail to see the point." },
 
-  // Special Distance-based (These are identified by text matching rather than code in the main map)
+  // Special Distance-based 
   { code: "SPECIAL-OK", emoji: "👌", phrase: "Everything is absolutely perfect!" },
   { code: "SPECIAL-MONEY", emoji: "💸", phrase: "How much does this cost?" },
   { code: "SPECIAL-PINCH", emoji: "🤏", phrase: "Can I have a little bit?" },

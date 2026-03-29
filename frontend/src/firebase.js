@@ -1,9 +1,8 @@
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
 import { getAnalytics, isSupported } from "firebase/analytics";
 
-// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyC88JJ8odYgdPO9Q0s7gbvX6IxIcjzCn0o",
   authDomain: "verdent-45e21.firebaseapp.com",
@@ -14,21 +13,29 @@ const firebaseConfig = {
   measurementId: "G-E1B8JSMJJY"
 };
 
-// Initialize Firebase with safety wrappers
-let app, auth, db, analytics;
+// ✅ Prevent multiple Firebase instances
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-try {
-  app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db = getFirestore(app);
-  
-  // Analytics is optional and can fail in many environments
-  isSupported().then(yes => {
-    if (yes) analytics = getAnalytics(app);
-  }).catch(() => {});
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-} catch (err) {
-  console.error("Firebase initialization failed:", err);
+// ✅ Handle offline persistence safely
+if (typeof window !== "undefined") {
+  enableIndexedDbPersistence(db).catch((err) => {
+    if (err.code === 'failed-precondition') {
+      console.warn("Multiple tabs open, persistence disabled");
+    } else if (err.code === 'unimplemented') {
+      console.warn("Browser doesn't support persistence");
+    }
+  });
 }
+
+// ✅ Analytics (safe init)
+let analytics = null;
+isSupported().then((yes) => {
+  if (yes) {
+    analytics = getAnalytics(app);
+  }
+}).catch(() => { });
 
 export { auth, db, analytics };

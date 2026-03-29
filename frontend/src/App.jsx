@@ -1,5 +1,4 @@
-import { useState } from "react";
-
+import { useState, useEffect } from "react";
 import { A11yProvider } from "./context/AccessibilityContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
@@ -32,6 +31,17 @@ function MainRouter() {
   const [page, setPage] = useState("home");
   const [selectedRoleForAuth, setSelectedRoleForAuth] = useState("student");
   const { currentUser, userRole } = useAuth();
+
+  // ── URL Deep Linking (FOR DEMO) ─────────────────────────
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const roleParam = params.get('role');
+    const pageParam = params.get('page');
+
+    if (roleParam === 'teacher' || pageParam === 'virtualclass') {
+      setPage("virtualclass");
+    }
+  }, []);
 
   // ── Auth flow ──────────────────────────────────────────────────────────────
   if (page === "roleselect") {

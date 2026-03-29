@@ -29,14 +29,17 @@ export const endClassSession = async () => {
   });
 };
 
-/**
- * Teacher broadcasts a detected sign (with its emoji) to all students via Firestore.
- */
-export const broadcastSign = async (sign, emoji = '🤟') => {
+export const broadcastSign = async (signData) => {
   const sessionRef = doc(db, 'sessions', SESSION_ID);
+  
+  // If passed a string (old way), wrap it. 
+  // If passed an object (new way), spread its contents.
+  const updatePayload = typeof signData === 'object' 
+    ? { lastSign: signData.phrase, lastSignEmoji: signData.emoji, lastSignConfidence: signData.confidence }
+    : { lastSign: signData, lastSignEmoji: '🤟' };
+
   await updateDoc(sessionRef, {
-    lastSign: sign,
-    lastSignEmoji: emoji,
+    ...updatePayload,
     lastSignAt: serverTimestamp(),
     lastUpdated: serverTimestamp(),
   });
