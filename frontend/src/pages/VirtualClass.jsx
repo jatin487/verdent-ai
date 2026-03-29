@@ -67,30 +67,42 @@ export default function VirtualClass({ onBack, setPage }) {
     if (!window.speechSynthesis || !text || isTeacher) return;
     window.speechSynthesis.cancel();
     const utt = new SpeechSynthesisUtterance(text);
-    utt.rate = 1.0; window.speechSynthesis.speak(utt);
+    utt.rate = 1.0; 
+    window.speechSynthesis.speak(utt);
   }, [isTeacher]);
 
   const processIncomingSign = useCallback((data) => {
     if (!data) return;
     const { phrase, emoji, sentence, voiceTranscript, time } = data;
-    // Check if data is fresh
-    if (time > lastReceivedRef.current.time) {
-      const oldSentence = lastReceivedRef.current?.sentence || "";
-      const isNewSentence = sentence && sentence !== oldSentence && sentence !== "---";
-      
+    
+    // FIX: Remove strict time check to ensure updates aren't missed if clocks drift slightly
+    // Instead, we just check if it's different from the current state
+    const oldSentence = lastReceivedRef.current?.sentence || "";
+    const isNewPhrase = phrase !== (lastReceivedRef.current?.phrase || "");
+    const isNewSentence = (sentence || "") !== oldSentence;
+    const isNewVoice = (voiceTranscript || "") !== (lastReceivedRef.current?.voiceTranscript || "");
+
+    if (isNewPhrase || isNewSentence || isNewVoice) {
       lastReceivedRef.current = data;
       setSessionActive(true); 
-      setLastReceivedSign(phrase === "---" ? null : phrase); 
-      setReceivedSentence(sentence); 
-      setVoiceText(voiceTranscript);
+      setLastReceivedSign((!phrase || phrase === "---") ? null : phrase); 
+      setReceivedSentence(sentence || ""); 
+      setVoiceText(voiceTranscript || "");
 
-      if (phrase && phrase !== "---") {
+      if (phrase && phrase !== "---" && isNewPhrase) {
         const entry = { phrase, emoji: emoji || '🤟', time: new Date().toLocaleTimeString() };
-        setBroadcastHistory(prev => [entry, ...prev].slice(0, 8));
+        setBroadcastHistory(prev => [entry, ...prev].slice(0, 10));
         if (!isTeacher) {
            if (isNewSentence && sentence.length > oldSentence.length) speak(sentence); 
            else speak(phrase);
         }
+      }
+      
+      // If teacher cleared the board (sentence is empty and was not before)
+      if (sentence === "" && oldSentence !== "") {
+        setReceivedSentence("");
+        setLastReceivedSign(null);
+        setVoiceText("");
       }
     }
   }, [isTeacher, speak]);
@@ -102,22 +114,31 @@ export default function VirtualClass({ onBack, setPage }) {
       setSessionActive(!!data.active);
       if (data.active && data.lastSign) {
         processIncomingSign(data.lastSign);
+      } else if (!data.active) {
+        // Teacher ended session
+        setReceivedSentence(""); setLastReceivedSign(null); setVoiceText("");
       }
     });
 
-    // Fallback sync (same machine)
+    // FALLBACK: LocalStorage for same-machine testing
     const localInterval = setInterval(() => {
       const localDataRaw = localStorage.getItem("liveSign");
       if (localDataRaw) {
         try { processIncomingSign(JSON.parse(localDataRaw)); } catch(e) {}
       }
-    }, 400);
+    }, 500);
 
     return () => { unsub(); clearInterval(localInterval); if(isTeacher) endClassSession(); };
   }, [processIncomingSign, isTeacher, currentUser]);
 
   const broadcastRealTimeUpdate = useCallback((sentence, signPhrase, emoji, voiceTranscript) => {
-     const data = { phrase: signPhrase || "---", emoji: emoji || "🤟", sentence: sentence || "", voiceTranscript: voiceTranscript || "", time: Date.now() };
+     const data = { 
+       phrase: signPhrase || "---", 
+       emoji: emoji || "🤟", 
+       sentence: sentence || "", 
+       voiceTranscript: voiceTranscript || "", 
+       time: Date.now() 
+     };
      if (isTeacher) { 
         broadcastSign(data);
         localStorage.setItem("liveSign", JSON.stringify(data)); 
@@ -162,7 +183,8 @@ export default function VirtualClass({ onBack, setPage }) {
     setCamStatus('loading');
     try {
       if (window.localStream) window.localStream.getTracks().forEach(t => t.stop());
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: isTeacher ? 1280 : 640, height: isTeacher ? 720 : 480 } });
+      const resW = isTeacher ? 1280 : 640, resH = isTeacher ? 720 : 480;
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: resW, height: resH } });
       window.localStream = stream;
       if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.onloadedmetadata = () => videoRef.current.play(); }
 
@@ -220,7 +242,7 @@ export default function VirtualClass({ onBack, setPage }) {
           </div>
         </div>
         <div className="vc-topbar-right">
-           {isTeacher && <button className={`vc-voice-btn ${isListening ? 'active' : ''}`} onClick={toggleVoice}>{isListening ? '🛑 Stop Voice' : '🎙️ Start Voice'}</button>}
+           {isTeacher && <button className={`vc-voice-btn ${isListening ? 'active' : ''}`} onClick={toggleVoice}>{isListening ? '🛑 Stop' : '🎙️ Voice'}</button>}
            <a href={`/virtual-class?role=${isTeacher ? 'student' : 'teacher'}`} className="vc-role-switch">Switch View ↗</a>
         </div>
       </div>
@@ -229,7 +251,6 @@ export default function VirtualClass({ onBack, setPage }) {
         <div className="vc-jitsi-panel">
           <iframe title="Jitsi" src={`https://meet.jit.si/${ROOM_NAME}#config.prejoinPageEnabled=false`} allow="camera; microphone; fullscreen" className="vc-jitsi-iframe" />
           
-          {/* USER REQUEST: FIX SYNC & SHOW ON STUDENT VIRTUAL LIVE AS WELL */}
           {sessionActive && (receivedSentence || currentSentence || voiceText) && (
             <div className="vc-video-captions">
               <div className="vc-caption-tag">{isTeacher ? 'MY BROADCAST' : 'TEACHER TRACKING'}</div>
@@ -252,19 +273,18 @@ export default function VirtualClass({ onBack, setPage }) {
                 </div>
               )}
             </div>
-            {isTeacher && <button className="vc-clear-btn" onClick={handleClear}>Reset Sign Board</button>}
+            {isTeacher && <button className="vc-clear-btn" onClick={handleClear}>Reset Board</button>}
           </div>
 
           <div className="vc-panel-section">
-            <div className="vc-section-title">{isTeacher ? "AI Broadcaster" : "My Practice Feed"}</div>
-            {/* BOTH roles now have a Sidebar Camera for maximum "Interactive" feel */}
+            <div className="vc-section-title">{isTeacher ? "AI Studio Area" : "Practice Support"}</div>
             <div className="vc-camera-box">
               <video ref={videoRef} playsInline muted autoPlay className="vc-video-element" />
               <canvas ref={canvasRef} className="vc-skeleton-canvas" />
               {camStatus !== 'active' && (
                 <div className="vc-camera-placeholder">
-                  <p className="vc-placeholder-text">Camera Off</p>
-                  <button className="vc-retry-btn" onClick={startCamera}>Enable {isTeacher ? 'Broadcast' : 'Practice'} AI</button>
+                  <p className="vc-placeholder-text">Camera Hidden</p>
+                  <button className="vc-retry-btn" onClick={startCamera}>Start {isTeacher ? 'Broadcaster' : 'Practice'} AI</button>
                 </div>
               )}
               {detectedSign && (
@@ -274,6 +294,11 @@ export default function VirtualClass({ onBack, setPage }) {
                 </div>
               )}
             </div>
+            {!isTeacher && (
+               <div className="vc-practice-hint">
+                  <p>Observing Teacher signs. Translations sync automatically on the board above.</p>
+               </div>
+            )}
           </div>
           
           <div className="vc-panel-section history">
