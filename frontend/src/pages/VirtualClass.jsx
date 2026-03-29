@@ -67,19 +67,18 @@ export default function VirtualClass({ onBack, setPage }) {
     if (!window.speechSynthesis || !text || isTeacher) return;
     window.speechSynthesis.cancel();
     const utt = new SpeechSynthesisUtterance(text);
-    utt.rate = 1.0;
+    utt.rate = 1.1; 
     window.speechSynthesis.speak(utt);
   }, [isTeacher]);
 
-  const broadcastRealTimeUpdate = useCallback((sentence, signPhrase, emoji, voiceTranscript) => {
-     const data = { phrase: signPhrase || "---", emoji: emoji || "🤟", sentence: sentence || "", voiceTranscript: voiceTranscript || "", time: Date.now() };
-     if (isTeacher) { broadcastSign(data); localStorage.setItem("liveSign", JSON.stringify(data)); }
-  }, [isTeacher]);
-
   const processIncomingSign = useCallback((data) => {
+    if (!data) return;
     const { phrase, emoji, sentence, voiceTranscript, time } = data;
+    // IF THIS IS NEWER DATA THAN WE ALREADY HAVE
     if (time > lastReceivedRef.current.time) {
-      const isNewSentence = sentence !== lastReceivedRef.current?.sentence && sentence !== "";
+      const oldSentence = lastReceivedRef.current?.sentence || "";
+      const isNewSentence = sentence !== oldSentence && sentence !== "" && sentence !== "---";
+      
       lastReceivedRef.current = data;
       setSessionActive(true); 
       setLastReceivedSign(phrase === "---" ? null : phrase); 
@@ -89,8 +88,9 @@ export default function VirtualClass({ onBack, setPage }) {
       if (phrase !== "---") {
         const entry = { phrase, emoji: emoji || '🤟', time: new Date().toLocaleTimeString() };
         setBroadcastHistory(prev => [entry, ...prev].slice(0, 8));
+        // ONLY SPEAK ON STUDENT SIDE
         if (!isTeacher) {
-           if (isNewSentence) speak(sentence); 
+           if (isNewSentence && sentence.length > oldSentence.length) speak(sentence); 
            else speak(phrase);
         }
       }
@@ -98,10 +98,15 @@ export default function VirtualClass({ onBack, setPage }) {
   }, [isTeacher, speak]);
 
   useEffect(() => {
+    // If Teacher, ensure session is active in Firebase
+    if (isTeacher && currentUser) startClassSession(currentUser.uid);
+
     const unsub = subscribeToClassSession((data) => {
       setSessionActive(!!data.active);
       if (data.active && data.lastSign) processIncomingSign(data.lastSign);
     });
+
+    // POLLING LOCAL STORAGE AS FALLBACK (For open tabs on same machine)
     const localInterval = setInterval(() => {
       const localDataRaw = localStorage.getItem("liveSign");
       if (localDataRaw) {
@@ -110,9 +115,18 @@ export default function VirtualClass({ onBack, setPage }) {
           processIncomingSign(localData);
         } catch(e) {}
       }
-    }, 300);
-    return () => { unsub(); clearInterval(localInterval); };
-  }, [processIncomingSign]);
+    }, 400);
+
+    return () => { unsub(); clearInterval(localInterval); if(isTeacher) endClassSession(); };
+  }, [processIncomingSign, isTeacher, currentUser]);
+
+  const broadcastRealTimeUpdate = useCallback((sentence, signPhrase, emoji, voiceTranscript) => {
+     const data = { phrase: signPhrase || "---", emoji: emoji || "🤟", sentence: sentence || "", voiceTranscript: voiceTranscript || "", time: Date.now() };
+     if (isTeacher) { 
+        broadcastSign(data);
+        localStorage.setItem("liveSign", JSON.stringify(data)); 
+     }
+  }, [isTeacher]);
 
   const analyzeHand = useCallback((landmarks) => {
     if (!landmarks || landmarks.length < 21) { holdStartRef.current = null; setDetectedSign(null); setHoldProgress(0); return; }
@@ -120,12 +134,13 @@ export default function VirtualClass({ onBack, setPage }) {
     const indexExt = landmarks[8].y < landmarks[6].y;
     const middleExt = landmarks[12].y < landmarks[10].y;
     const ringExt = landmarks[16].y < landmarks[14].y;
-    const pinkyExt = landmarks[16].y > landmarks[14].y && landmarks[20].y < landmarks[18].y;
+    const pinkyFinal = landmarks[20].y < landmarks[18].y;
+
     const thumbUp = landmarks[4].y < landmarks[3].y && landmarks[4].y < landmarks[5].y - palmSize * 0.3;
     const thumbDown = landmarks[4].y > landmarks[3].y && landmarks[4].y > landmarks[5].y + palmSize * 0.3;
     const thumbOut = Math.abs(landmarks[4].x - landmarks[9].x) > palmSize * 0.8;
     let thState = (thumbUp ? 'UP' : (thumbDown ? 'DOWN' : (thumbOut ? 'OUT' : 'TUCKED')));
-    const pinkyFinal = landmarks[20].y < landmarks[18].y;
+    
     const code = `${thState}-${indexExt?'1':'0'}${middleExt?'1':'0'}${ringExt?'1':'0'}${pinkyFinal?'1':'0'}`;
     const match = GESTURE_DICTIONARY.find(g => g.code === code);
     const currentDetect = match ? match.phrase : null;
@@ -147,11 +162,11 @@ export default function VirtualClass({ onBack, setPage }) {
   }, [isTeacher, currentSentence, voiceText, broadcastRealTimeUpdate]);
 
   const startCamera = useCallback(async () => {
-    if (camStatus === 'active' || !isTeacher) return;
+    if (camStatus === 'active') return;
     setCamStatus('loading');
     try {
       if (window.localStream) window.localStream.getTracks().forEach(t => t.stop());
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: isTeacher ? 1280 : 640, height: isTeacher ? 720 : 480 } });
       window.localStream = stream;
       if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.onloadedmetadata = () => videoRef.current.play(); }
 
@@ -160,7 +175,7 @@ export default function VirtualClass({ onBack, setPage }) {
       hands.onResults(r => {
         if (!canvasRef.current || !videoRef.current) return;
         const video = videoRef.current; const canvas = canvasRef.current; const ctx = canvas.getContext('2d');
-        const W = video.videoWidth || 1280; const H = video.videoHeight || 720;
+        const W = video.videoWidth; const H = video.videoHeight;
         if (canvas.width !== W) { canvas.width = W; canvas.height = H; }
         ctx.clearRect(0, 0, W, H);
         if (r.multiHandLandmarks?.[0]) { drawLandmarksOnly(ctx, r.multiHandLandmarks[0], W, H); analyzeHand(r.multiHandLandmarks[0]); }
@@ -209,22 +224,18 @@ export default function VirtualClass({ onBack, setPage }) {
           </div>
         </div>
         <div className="vc-topbar-right">
-           {isTeacher && <button className={`vc-voice-btn ${isListening ? 'active' : ''}`} onClick={toggleVoice}>{isListening ? '🛑 Stop Voice' : '🎙️ Start Voice'}</button>}
-           <a href={`/virtual-class?role=${isTeacher ? 'student' : 'teacher'}`} className="vc-role-switch">Switch to {isTeacher ? 'Student' : 'Teacher'} Portal ↗</a>
+           {isTeacher && <button className={`vc-voice-btn ${isListening ? 'active' : ''}`} onClick={toggleVoice}>{isListening ? '🛑 Stop' : '🎙️ Voice'}</button>}
+           <a href={`/virtual-class?role=${isTeacher ? 'student' : 'teacher'}`} className="vc-role-switch">Switch View ↗</a>
         </div>
       </div>
 
       <div className="vc-layout">
-        {/* UNIFIED JITSI PANEL FOR BOTH ROLES */}
         <div className="vc-jitsi-panel">
           <iframe title="Jitsi" src={`https://meet.jit.si/${ROOM_NAME}#config.prejoinPageEnabled=false`} allow="camera; microphone; fullscreen" className="vc-jitsi-iframe" />
           
-          {/* USER REQUEST: "remove teacher translation from student one" (Floating subtitles) */}
-          {/* We will only show floating captions if NOT a student (or we can just remove them for now as requested) */}
-          {/* Actually, I'll keep them ONLY for the Teacher so they see their own live stream status. Students will see it in the sidebar. */}
           {isTeacher && sessionActive && (currentSentence || voiceText) && (
             <div className="vc-video-captions">
-              <div className="vc-caption-tag">BROADCASTER FEEDBACK</div>
+              <div className="vc-caption-tag">STUDIO FEEDBACK</div>
               <div className="vc-caption-text">
                 {voiceText && <div className="vc-voice-text">🎙️ {voiceText}</div>}
                 {currentSentence && <div className="vc-sign-sentence">{currentSentence}</div>}
@@ -233,33 +244,30 @@ export default function VirtualClass({ onBack, setPage }) {
           )}
         </div>
 
-        {/* SIDEBAR DASHBOARD */}
         <div className="vc-comm-panel">
           <div className="vc-panel-section">
-            <div className="vc-section-title">👨‍🏫 Teacher's Live Sign Board</div>
+            <div className="vc-section-title">👨‍🏫 Teacher's Board (Live)</div>
             <div className="vc-student-sign-box">
-              {!sessionActive ? <p>Awaiting broadcast...</p> : (
+              {!sessionActive ? <p>Awaiting teacher...</p> : (
                 <div className="vc-sign-display">
-                  <span className="vc-sign-phrase">{lastReceivedSign || "..."}</span>
+                  <span className="vc-sign-phrase">{lastReceivedSign || "---"}</span>
                   {(receivedSentence || currentSentence) && <p className="vc-voice-small">{isTeacher ? currentSentence : receivedSentence}</p>}
-                  {voiceText && <p className="vc-voice-small">🎙️ {voiceText}</p>}
                 </div>
               )}
             </div>
-            {isTeacher && <button className="vc-clear-btn" onClick={handleClear}>Reset Sign Board</button>}
+            {isTeacher && <button className="vc-clear-btn" onClick={handleClear}>Reset Board</button>}
           </div>
 
           <div className="vc-panel-section">
             <div className="vc-section-title">{isTeacher ? "AI Studio Area" : "Practice Support"}</div>
-            {/* The teacher uses the AI Studio in their sidebar */}
             {isTeacher ? (
               <div className="vc-camera-box">
                 <video ref={videoRef} playsInline muted autoPlay className="vc-video-element" />
                 <canvas ref={canvasRef} className="vc-skeleton-canvas" />
                 {camStatus !== 'active' && (
                   <div className="vc-camera-placeholder">
-                    <p className="vc-placeholder-text">Studio Off</p>
-                    <button className="vc-retry-btn" onClick={startCamera}>Start AI Studio</button>
+                    <p className="vc-placeholder-text">Camera Hidden</p>
+                    <button className="vc-retry-btn" onClick={startCamera}>Start Studio AI</button>
                   </div>
                 )}
                 {detectedSign && (
@@ -271,16 +279,12 @@ export default function VirtualClass({ onBack, setPage }) {
               </div>
             ) : (
               <div className="vc-practice-hint">
-                <p>Follow the teacher's signs in the meeting. Use the board above for real-time translation.</p>
+                <div className="vc-sign-display">
+                   {voiceText && <p className="vc-voice-text">🎙️ {voiceText}</p>}
+                </div>
+                <p>Observe the teacher on Jitsi. The translations will sync on the board above.</p>
               </div>
             )}
-          </div>
-
-          <div className="vc-panel-section history">
-            <div className="vc-section-title">📜 Session Log</div>
-            <div className="vc-history-list">
-              {broadcastHistory.map((h, i) => (<div key={i} className="vc-history-item"><span>{h.emoji} {h.phrase}</span><small>{h.time}</small></div>))}
-            </div>
           </div>
         </div>
       </div>

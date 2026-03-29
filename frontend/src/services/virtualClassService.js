@@ -29,25 +29,23 @@ export const endClassSession = async () => {
   });
 };
 
+/**
+ * Broadcast the sign and session data.
+ */
 export const broadcastSign = async (signData) => {
   const sessionRef = doc(db, 'sessions', SESSION_ID);
   
-  // If passed a string (old way), wrap it. 
-  // If passed an object (new way), spread its contents.
-  const updatePayload = typeof signData === 'object' 
-    ? { lastSign: signData.phrase, lastSignEmoji: signData.emoji, lastSignConfidence: signData.confidence }
-    : { lastSign: signData, lastSignEmoji: '🤟' };
-
+  // Store the full complex object (phrase, sentence, voice, etc.) so students get the whole package.
   await updateDoc(sessionRef, {
-    ...updatePayload,
+    lastSign: signData, 
     lastSignAt: serverTimestamp(),
     lastUpdated: serverTimestamp(),
+    active: true
   });
 };
 
 /**
  * Subscribe to the class session in real-time (used by both teacher and student).
- * onUpdate receives the full session document data.
  */
 export const subscribeToClassSession = (onUpdate) => {
   const sessionRef = doc(db, 'sessions', SESSION_ID);
@@ -55,8 +53,7 @@ export const subscribeToClassSession = (onUpdate) => {
     if (docSnap.exists()) {
       onUpdate(docSnap.data());
     } else {
-      // Session document doesn't exist yet – report as inactive
-      onUpdate({ active: false, lastSign: null, lastSignEmoji: null });
+      onUpdate({ active: false, lastSign: null });
     }
   });
 };
