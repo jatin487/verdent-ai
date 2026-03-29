@@ -67,17 +67,16 @@ export default function VirtualClass({ onBack, setPage }) {
     if (!window.speechSynthesis || !text || isTeacher) return;
     window.speechSynthesis.cancel();
     const utt = new SpeechSynthesisUtterance(text);
-    utt.rate = 1.1; 
-    window.speechSynthesis.speak(utt);
+    utt.rate = 1.0; window.speechSynthesis.speak(utt);
   }, [isTeacher]);
 
   const processIncomingSign = useCallback((data) => {
     if (!data) return;
     const { phrase, emoji, sentence, voiceTranscript, time } = data;
-    // IF THIS IS NEWER DATA THAN WE ALREADY HAVE
+    // Check if data is fresh
     if (time > lastReceivedRef.current.time) {
       const oldSentence = lastReceivedRef.current?.sentence || "";
-      const isNewSentence = sentence !== oldSentence && sentence !== "" && sentence !== "---";
+      const isNewSentence = sentence && sentence !== oldSentence && sentence !== "---";
       
       lastReceivedRef.current = data;
       setSessionActive(true); 
@@ -85,10 +84,9 @@ export default function VirtualClass({ onBack, setPage }) {
       setReceivedSentence(sentence); 
       setVoiceText(voiceTranscript);
 
-      if (phrase !== "---") {
+      if (phrase && phrase !== "---") {
         const entry = { phrase, emoji: emoji || '🤟', time: new Date().toLocaleTimeString() };
         setBroadcastHistory(prev => [entry, ...prev].slice(0, 8));
-        // ONLY SPEAK ON STUDENT SIDE
         if (!isTeacher) {
            if (isNewSentence && sentence.length > oldSentence.length) speak(sentence); 
            else speak(phrase);
@@ -98,22 +96,20 @@ export default function VirtualClass({ onBack, setPage }) {
   }, [isTeacher, speak]);
 
   useEffect(() => {
-    // If Teacher, ensure session is active in Firebase
     if (isTeacher && currentUser) startClassSession(currentUser.uid);
 
     const unsub = subscribeToClassSession((data) => {
       setSessionActive(!!data.active);
-      if (data.active && data.lastSign) processIncomingSign(data.lastSign);
+      if (data.active && data.lastSign) {
+        processIncomingSign(data.lastSign);
+      }
     });
 
-    // POLLING LOCAL STORAGE AS FALLBACK (For open tabs on same machine)
+    // Fallback sync (same machine)
     const localInterval = setInterval(() => {
       const localDataRaw = localStorage.getItem("liveSign");
       if (localDataRaw) {
-        try {
-          const localData = JSON.parse(localDataRaw);
-          processIncomingSign(localData);
-        } catch(e) {}
+        try { processIncomingSign(JSON.parse(localDataRaw)); } catch(e) {}
       }
     }, 400);
 
@@ -188,7 +184,7 @@ export default function VirtualClass({ onBack, setPage }) {
       };
       animFrameRef.current = requestAnimationFrame(loop);
       setCamStatus('active');
-    } catch (err) { console.error(err); setCamStatus('error'); }
+    } catch (err) { setCamStatus('error'); }
   }, [camStatus, analyzeHand, isTeacher]);
 
   const toggleVoice = useCallback(() => {
@@ -220,11 +216,11 @@ export default function VirtualClass({ onBack, setPage }) {
           <button onClick={onBack} className="vc-back-btn">← Back</button>
           <div className="vc-title-wrap">
             <div className={`vc-live-dot ${sessionActive ? 'active' : ''}`} />
-            <span className="vc-title">{isTeacher ? "Teacher Portal" : "Student Portal"}</span>
+            <span className="vc-title">{isTeacher ? "Broadcaster Portal" : "Student Portal"}</span>
           </div>
         </div>
         <div className="vc-topbar-right">
-           {isTeacher && <button className={`vc-voice-btn ${isListening ? 'active' : ''}`} onClick={toggleVoice}>{isListening ? '🛑 Stop' : '🎙️ Voice'}</button>}
+           {isTeacher && <button className={`vc-voice-btn ${isListening ? 'active' : ''}`} onClick={toggleVoice}>{isListening ? '🛑 Stop Voice' : '🎙️ Start Voice'}</button>}
            <a href={`/virtual-class?role=${isTeacher ? 'student' : 'teacher'}`} className="vc-role-switch">Switch View ↗</a>
         </div>
       </div>
@@ -233,12 +229,13 @@ export default function VirtualClass({ onBack, setPage }) {
         <div className="vc-jitsi-panel">
           <iframe title="Jitsi" src={`https://meet.jit.si/${ROOM_NAME}#config.prejoinPageEnabled=false`} allow="camera; microphone; fullscreen" className="vc-jitsi-iframe" />
           
-          {isTeacher && sessionActive && (currentSentence || voiceText) && (
+          {/* USER REQUEST: FIX SYNC & SHOW ON STUDENT VIRTUAL LIVE AS WELL */}
+          {sessionActive && (receivedSentence || currentSentence || voiceText) && (
             <div className="vc-video-captions">
-              <div className="vc-caption-tag">STUDIO FEEDBACK</div>
+              <div className="vc-caption-tag">{isTeacher ? 'MY BROADCAST' : 'TEACHER TRACKING'}</div>
               <div className="vc-caption-text">
                 {voiceText && <div className="vc-voice-text">🎙️ {voiceText}</div>}
-                {currentSentence && <div className="vc-sign-sentence">{currentSentence}</div>}
+                {(receivedSentence || currentSentence) && <div className="vc-sign-sentence">{isTeacher ? currentSentence : receivedSentence}</div>}
               </div>
             </div>
           )}
@@ -248,43 +245,42 @@ export default function VirtualClass({ onBack, setPage }) {
           <div className="vc-panel-section">
             <div className="vc-section-title">👨‍🏫 Teacher's Board (Live)</div>
             <div className="vc-student-sign-box">
-              {!sessionActive ? <p>Awaiting teacher...</p> : (
+              {!sessionActive ? <p>Awaiting teacher broadcast...</p> : (
                 <div className="vc-sign-display">
-                  <span className="vc-sign-phrase">{lastReceivedSign || "---"}</span>
+                  <span className="vc-sign-phrase">{isTeacher ? (detectedSign || "...") : (lastReceivedSign || "...")}</span>
                   {(receivedSentence || currentSentence) && <p className="vc-voice-small">{isTeacher ? currentSentence : receivedSentence}</p>}
                 </div>
               )}
             </div>
-            {isTeacher && <button className="vc-clear-btn" onClick={handleClear}>Reset Board</button>}
+            {isTeacher && <button className="vc-clear-btn" onClick={handleClear}>Reset Sign Board</button>}
           </div>
 
           <div className="vc-panel-section">
-            <div className="vc-section-title">{isTeacher ? "AI Studio Area" : "Practice Support"}</div>
-            {isTeacher ? (
-              <div className="vc-camera-box">
-                <video ref={videoRef} playsInline muted autoPlay className="vc-video-element" />
-                <canvas ref={canvasRef} className="vc-skeleton-canvas" />
-                {camStatus !== 'active' && (
-                  <div className="vc-camera-placeholder">
-                    <p className="vc-placeholder-text">Camera Hidden</p>
-                    <button className="vc-retry-btn" onClick={startCamera}>Start Studio AI</button>
-                  </div>
-                )}
-                {detectedSign && (
-                  <div className="vc-overlay-sign">
-                    <span className="vc-overlay-text">{detectedSign}</span>
-                    <div className="vc-hold-bar"><div className="vc-hold-fill" style={{ width: `${holdProgress}%` }} /></div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="vc-practice-hint">
-                <div className="vc-sign-display">
-                   {voiceText && <p className="vc-voice-text">🎙️ {voiceText}</p>}
+            <div className="vc-section-title">{isTeacher ? "AI Broadcaster" : "My Practice Feed"}</div>
+            {/* BOTH roles now have a Sidebar Camera for maximum "Interactive" feel */}
+            <div className="vc-camera-box">
+              <video ref={videoRef} playsInline muted autoPlay className="vc-video-element" />
+              <canvas ref={canvasRef} className="vc-skeleton-canvas" />
+              {camStatus !== 'active' && (
+                <div className="vc-camera-placeholder">
+                  <p className="vc-placeholder-text">Camera Off</p>
+                  <button className="vc-retry-btn" onClick={startCamera}>Enable {isTeacher ? 'Broadcast' : 'Practice'} AI</button>
                 </div>
-                <p>Observe the teacher on Jitsi. The translations will sync on the board above.</p>
-              </div>
-            )}
+              )}
+              {detectedSign && (
+                <div className="vc-overlay-sign">
+                  <span className="vc-overlay-text">{detectedSign}</span>
+                  <div className="vc-hold-bar"><div className="vc-hold-fill" style={{ width: `${holdProgress}%` }} /></div>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="vc-panel-section history">
+            <div className="vc-section-title">📜 Session Log</div>
+            <div className="vc-history-list">
+              {broadcastHistory.map((h, i) => (<div key={i} className="vc-history-item"><span>{h.emoji} {h.phrase}</span><small>{h.time}</small></div>))}
+            </div>
           </div>
         </div>
       </div>
