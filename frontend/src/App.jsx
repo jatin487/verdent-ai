@@ -3,8 +3,7 @@ import { A11yProvider } from "./context/AccessibilityContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
 import Navbar from "./components/Navbar";
-import A11yWidget from "./components/A11yWidget";
-import LiveSpeechPanel from "./components/LiveSpeechPanel";
+
 
 import LandingPage from "./pages/LandingPage";
 import Dashboard from "./pages/Dashboard";
@@ -100,8 +99,7 @@ function MainRouter() {
     <>
       {showNav && <Navbar page={page} setPage={setPage} />}
       <PageComponent setPage={setPage} />
-      <A11yWidget />
-      <LiveSpeechPanel />
+
     </>
   );
 }
