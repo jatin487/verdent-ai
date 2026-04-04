@@ -4,6 +4,9 @@
 
 CAST is an AI-powered accessibility platform designed to help people with hearing or speech impairments communicate more easily in everyday situations. The system converts speech into text in real time, provides audio playback, and supports sign language interaction to reduce communication barriers.
 
+**🌐 [Live Demo on Netlify](https://verdent-ai.netlify.app/)**
+**🚀 [Sign Detection AI on Render](https://verdent-ai-backend.onrender.com/)**
+
 ---
 
 ## 🌍 Problem Statement

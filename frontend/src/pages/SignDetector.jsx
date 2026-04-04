@@ -3,7 +3,10 @@ import { useA11y } from '../context/AccessibilityContext'
 import { GESTURE_DICTIONARY } from '../data/gestures'
 import './SignDetector.css'
 
-const BACKEND_URL = 'http://localhost:5001'
+const BACKEND_URL = window.location.hostname.includes('localhost') 
+  ? 'http://localhost:5001' 
+  : 'https://verdent-ai-backend.onrender.com'; // Production Render Backend
+
 const POSE_HOLD_MS = 1000
 
 // MediaPipe hand connections for drawing landmarks

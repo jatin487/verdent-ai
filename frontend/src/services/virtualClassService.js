@@ -57,3 +57,18 @@ export const subscribeToClassSession = (onUpdate) => {
     }
   });
 };
+
+/**
+ * Student requests clarification for a sign.
+ */
+export const broadcastDoubt = async (studentName, signPhrase) => {
+  const sessionRef = doc(db, 'sessions', SESSION_ID);
+  await updateDoc(sessionRef, {
+    lastDoubt: {
+      studentName,
+      signPhrase,
+      time: Date.now()
+    },
+    lastUpdated: serverTimestamp()
+  });
+};

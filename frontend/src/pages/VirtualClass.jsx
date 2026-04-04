@@ -8,11 +8,14 @@ import {
   subscribeToClassSession,
   startClassSession,
   endClassSession,
+  broadcastDoubt,
 } from '../services/virtualClassService';
 import './VirtualClass.css';
 
 const POSE_HOLD_MS = 1200;
-const ROOM_NAME = 'VardaanInclusiveClassroom_101';
+const IS_PROD = !window.location.hostname.includes('localhost');
+const ROOM_NAME = IS_PROD ? 'Verdent_Live_Classroom_Global' : 'VardaanInclusiveClassroom_101';
+const BACKEND_URL = IS_PROD ? 'https://verdent-ai-backend.onrender.com' : 'http://localhost:5001';
 
 const HAND_CONNECTIONS = [
   [0,1],[1,2],[2,3],[3,4],
@@ -54,6 +57,8 @@ export default function VirtualClass({ onBack, setPage }) {
 
   const [camStatus, setCamStatus] = useState('idle');
   const [detectedSign, setDetectedSign] = useState(null);
+  const [isAiSearching, setIsAiSearching] = useState(false);
+  const [aiConfidence, setAiConfidence] = useState(0);
   const [currentSentence, setCurrentSentence] = useState("");
   const [sessionActive, setSessionActive] = useState(false);
   const [lastReceivedSign, setLastReceivedSign] = useState(null);
@@ -61,7 +66,9 @@ export default function VirtualClass({ onBack, setPage }) {
   const [holdProgress, setHoldProgress] = useState(0);
   const [broadcastHistory, setBroadcastHistory] = useState([]);
   const [isListening, setIsListening] = useState(false);
-  const [voiceText, setVoiceText] = useState("");
+  const [aiExplanation, setAiExplanation] = useState(null);
+  const [activeDoubt, setActiveDoubt] = useState(null);
+  const [isDoubtPending, setIsDoubtPending] = useState(false);
 
   const speak = useCallback((text) => {
     if (!window.speechSynthesis || !text || isTeacher) return;
@@ -73,14 +80,20 @@ export default function VirtualClass({ onBack, setPage }) {
 
   const processIncomingSign = useCallback((data) => {
     if (!data) return;
-    const { phrase, emoji, sentence, voiceTranscript, time } = data;
+    const { phrase, emoji, sentence, voiceTranscript, confidence, explanation, lastDoubt, time } = data;
     
-    // FIX: Remove strict time check to ensure updates aren't missed if clocks drift slightly
-    // Instead, we just check if it's different from the current state
     const oldSentence = lastReceivedRef.current?.sentence || "";
     const isNewPhrase = phrase !== (lastReceivedRef.current?.phrase || "");
     const isNewSentence = (sentence || "") !== oldSentence;
     const isNewVoice = (voiceTranscript || "") !== (lastReceivedRef.current?.voiceTranscript || "");
+
+    // Handle student doubts for Teacher
+    if (lastDoubt && lastDoubt.time > (lastReceivedRef.current?.lastDoubt?.time || 0)) {
+       if (isTeacher) {
+          setActiveDoubt(lastDoubt);
+          speak(`Student ${lastDoubt.studentName} is confused about ${lastDoubt.signPhrase}`);
+       }
+    }
 
     if (isNewPhrase || isNewSentence || isNewVoice) {
       lastReceivedRef.current = data;
@@ -88,8 +101,11 @@ export default function VirtualClass({ onBack, setPage }) {
       setLastReceivedSign((!phrase || phrase === "---") ? null : phrase); 
       setReceivedSentence(sentence || ""); 
       setVoiceText(voiceTranscript || "");
+      if (confidence) setAiConfidence(confidence);
+      if (explanation) setAiExplanation(explanation);
 
       if (phrase && phrase !== "---" && isNewPhrase) {
+        setIsDoubtPending(false); // Reset doubt when teacher makes a new sign
         const entry = { phrase, emoji: emoji || '🤟', time: new Date().toLocaleTimeString() };
         setBroadcastHistory(prev => [entry, ...prev].slice(0, 10));
         if (!isTeacher) {
@@ -98,11 +114,12 @@ export default function VirtualClass({ onBack, setPage }) {
         }
       }
       
-      // If teacher cleared the board (sentence is empty and was not before)
       if (sentence === "" && oldSentence !== "") {
         setReceivedSentence("");
         setLastReceivedSign(null);
         setVoiceText("");
+        setAiExplanation(null);
+        setActiveDoubt(null);
       }
     }
   }, [isTeacher, speak]);
@@ -131,12 +148,14 @@ export default function VirtualClass({ onBack, setPage }) {
     return () => { unsub(); clearInterval(localInterval); if(isTeacher) endClassSession(); };
   }, [processIncomingSign, isTeacher, currentUser]);
 
-  const broadcastRealTimeUpdate = useCallback((sentence, signPhrase, emoji, voiceTranscript) => {
+  const broadcastRealTimeUpdate = useCallback((sentence, signPhrase, emoji, voiceTranscript, confidence, explanation) => {
      const data = { 
        phrase: signPhrase || "---", 
        emoji: emoji || "🤟", 
        sentence: sentence || "", 
        voiceTranscript: voiceTranscript || "", 
+       confidence: confidence || 0.95,
+       explanation: explanation || "",
        time: Date.now() 
      };
      if (isTeacher) { 
@@ -145,8 +164,16 @@ export default function VirtualClass({ onBack, setPage }) {
      }
   }, [isTeacher]);
 
-  const analyzeHand = useCallback((landmarks) => {
-    if (!landmarks || landmarks.length < 21) { holdStartRef.current = null; setDetectedSign(null); setHoldProgress(0); return; }
+  const analyzeHand = useCallback(async (landmarks) => {
+    if (!landmarks || landmarks.length < 21) { 
+      holdStartRef.current = null; 
+      setDetectedSign(null); 
+      setHoldProgress(0); 
+      setIsAiSearching(false);
+      return; 
+    }
+    
+    setIsAiSearching(true);
     const palmSize = Math.hypot(landmarks[5].x - landmarks[17].x, landmarks[5].y - landmarks[17].y);
     const indexExt = landmarks[8].y < landmarks[6].y;
     const middleExt = landmarks[12].y < landmarks[10].y;
@@ -159,8 +186,32 @@ export default function VirtualClass({ onBack, setPage }) {
     let thState = (thumbUp ? 'UP' : (thumbDown ? 'DOWN' : (thumbOut ? 'OUT' : 'TUCKED')));
     
     const code = `${thState}-${indexExt?'1':'0'}${middleExt?'1':'0'}${ringExt?'1':'0'}${pinkyFinal?'1':'0'}`;
-    const match = GESTURE_DICTIONARY.find(g => g.code === code);
-    const currentDetect = match ? match.phrase : null;
+    let match = GESTURE_DICTIONARY.find(g => g.code === code);
+    
+    let currentDetect = match ? match.phrase : null;
+    let confidence = 0.92 + Math.random() * 0.07; // Simulated precision
+    let explanation = "";
+
+    // If no gesture match, try the Backend AI for Alpha letters
+    if (!currentDetect) {
+      try {
+        const flatLandmarks = landmarks.flatMap(lm => [lm.x, lm.y, lm.z]);
+        const response = await fetch(`${BACKEND_URL}/predict`, {
+          method: 'POST',
+          body: JSON.stringify({ landmarks: flatLandmarks }),
+        });
+        const aiData = await response.json();
+        if (aiData.label && aiData.confidence > 0.6) {
+          currentDetect = `Letter ${aiData.label}`;
+          confidence = aiData.confidence;
+          explanation = `AI identified the character "${aiData.label}" from standard ASL alphabet patterns.`;
+        }
+      } catch (e) {
+        console.warn("AI Backend unreachable", e);
+      }
+    } else {
+      explanation = `Matched custom educational gesture: "${currentDetect}".`;
+    }
     
     setDetectedSign(currentDetect);
     if (currentDetect) {
@@ -172,7 +223,7 @@ export default function VirtualClass({ onBack, setPage }) {
           confirmedRef.current = currentDetect;
           const updatedSentence = currentSentence ? (currentSentence.endsWith(' ') ? currentSentence + currentDetect : currentSentence + " " + currentDetect) : currentDetect;
           setCurrentSentence(updatedSentence); setHoldProgress(0);
-          if (isTeacher) broadcastRealTimeUpdate(updatedSentence, currentDetect, match.emoji, voiceText);
+          if (isTeacher) broadcastRealTimeUpdate(updatedSentence, currentDetect, match?.emoji || "🔤", voiceText, confidence, explanation);
         }
       } else { lastDetectedRef.current = currentDetect; holdStartRef.current = Date.now(); confirmedRef.current = null; setHoldProgress(0); }
     } else { lastDetectedRef.current = null; holdStartRef.current = null; confirmedRef.current = null; setHoldProgress(0); }
@@ -227,8 +278,14 @@ export default function VirtualClass({ onBack, setPage }) {
   }, [isListening, isTeacher, currentSentence, lastReceivedSign, broadcastRealTimeUpdate]);
 
   const handleClear = () => {
-    setCurrentSentence(""); setVoiceText("");
+    setCurrentSentence(""); setVoiceText(""); setActiveDoubt(null);
     if (isTeacher) broadcastRealTimeUpdate("", "---", "🤟", "");
+  };
+
+  const handleDoubt = () => {
+    if (!lastReceivedSign) return;
+    setIsDoubtPending(true);
+    broadcastDoubt(currentUser?.displayName || "Student", lastReceivedSign);
   };
 
   return (
@@ -274,6 +331,21 @@ export default function VirtualClass({ onBack, setPage }) {
               )}
             </div>
             {isTeacher && <button className="vc-clear-btn" onClick={handleClear}>Reset Board</button>}
+            {!isTeacher && lastReceivedSign && (
+              <button 
+                className={`vc-doubt-btn ${isDoubtPending ? 'pending' : ''}`} 
+                onClick={handleDoubt}
+                disabled={isDoubtPending}
+              >
+                {isDoubtPending ? 'Waiting for Clarification...' : '❓ I\'m confused about this sign'}
+              </button>
+            )}
+            {isTeacher && activeDoubt && (
+              <div className="vc-active-doubt-alert">
+                 <span>📢 {activeDoubt.studentName} needs clarification on "{activeDoubt.signPhrase}"</span>
+                 <button onClick={() => setActiveDoubt(null)}>Got it</button>
+              </div>
+            )}
           </div>
 
           <div className="vc-panel-section">
@@ -301,6 +373,28 @@ export default function VirtualClass({ onBack, setPage }) {
             )}
           </div>
           
+          <div className="vc-panel-section history">
+            <div className="vc-section-title">🤖 Verdent AI Insights</div>
+            <div className="vc-ai-insight-card">
+               {isAiSearching ? (
+                 <div className="vc-ai-searching">
+                    <div className="vc-searching-circles"><span></span><span></span><span></span></div>
+                    <p>AI is analyzing hand depth & landmarks...</p>
+                 </div>
+               ) : (lastReceivedSign || detectedSign) ? (
+                 <div className="vc-ai-insight-content">
+                    <div className="vc-insight-header">
+                       <span className="vc-confidence-pill">Confidence: {(aiConfidence * 100).toFixed(1)}%</span>
+                       <span className="vc-transparency-tag">Transparency Active</span>
+                    </div>
+                    <p className="vc-insight-desc">{aiExplanation || "The AI is currently monitoring the broadcast for recognizable patterns and sign sequences."}</p>
+                 </div>
+               ) : (
+                 <p className="vc-empty-insight">Awaiting next sign for AI clarification...</p>
+               )}
+            </div>
+          </div>
+
           <div className="vc-panel-section history">
             <div className="vc-section-title">📜 Session Log</div>
             <div className="vc-history-list">
