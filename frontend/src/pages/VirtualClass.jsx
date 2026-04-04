@@ -13,8 +13,8 @@ import {
 import './VirtualClass.css';
 
 const POSE_HOLD_MS = 1200;
-const IS_PROD = !window.location.hostname.includes('localhost');
-const ROOM_NAME = IS_PROD ? 'Verdent_Live_Classroom_Global' : 'VardaanInclusiveClassroom_101';
+const IS_PROD = typeof window !== 'undefined' && !window.location.hostname.includes('localhost');
+const ROOM_NAME = IS_PROD ? 'Verdent_Live_Session_Global' : 'VardaanInclusiveClassroom_101';
 const BACKEND_URL = IS_PROD ? 'https://verdent-ai-backend.onrender.com' : 'http://localhost:5001';
 
 const HAND_CONNECTIONS = [
@@ -125,19 +125,22 @@ export default function VirtualClass({ onBack, setPage }) {
   }, [isTeacher, speak]);
 
   useEffect(() => {
-    if (isTeacher && currentUser) startClassSession(currentUser.uid);
+    let unsub = () => {};
+    try {
+      if (isTeacher && currentUser) startClassSession(currentUser.uid);
 
-    const unsub = subscribeToClassSession((data) => {
-      setSessionActive(!!data.active);
-      if (data.active && data.lastSign) {
-        processIncomingSign(data.lastSign);
-      } else if (!data.active) {
-        // Teacher ended session
-        setReceivedSentence(""); setLastReceivedSign(null); setVoiceText("");
-      }
-    });
+      unsub = subscribeToClassSession((data) => {
+        if (data && data.lastSign) {
+          processIncomingSign(data.lastSign);
+        }
+        if (data && data.lastDoubt) {
+          setActiveDoubt(data.lastDoubt);
+        }
+      });
+    } catch (err) {
+      console.error("Class mount error:", err);
+    }
 
-    // FALLBACK: LocalStorage for same-machine testing
     const localInterval = setInterval(() => {
       const localDataRaw = localStorage.getItem("liveSign");
       if (localDataRaw) {
@@ -145,7 +148,11 @@ export default function VirtualClass({ onBack, setPage }) {
       }
     }, 500);
 
-    return () => { unsub(); clearInterval(localInterval); if(isTeacher) endClassSession(); };
+    return () => { 
+      unsub(); 
+      clearInterval(localInterval); 
+      if(isTeacher) endClassSession(); 
+    };
   }, [processIncomingSign, isTeacher, currentUser]);
 
   const broadcastRealTimeUpdate = useCallback((sentence, signPhrase, emoji, voiceTranscript, confidence, explanation) => {

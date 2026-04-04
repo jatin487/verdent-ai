@@ -1,7 +1,8 @@
 import { doc, setDoc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 
-const SESSION_ID = 'VardaanInclusiveClassroom_101';
+const IS_PROD = typeof window !== 'undefined' && !window.location.hostname.includes('localhost');
+const SESSION_ID = IS_PROD ? 'Verdent_Live_Session_Global' : 'VardaanInclusiveClassroom_101';
 
 /**
  * Teacher starts (or re-activates) the class session.
@@ -33,15 +34,17 @@ export const endClassSession = async () => {
  * Broadcast the sign and session data.
  */
 export const broadcastSign = async (signData) => {
-  const sessionRef = doc(db, 'sessions', SESSION_ID);
-  
-  // Store the full complex object (phrase, sentence, voice, etc.) so students get the whole package.
-  await updateDoc(sessionRef, {
-    lastSign: signData, 
-    lastSignAt: serverTimestamp(),
-    lastUpdated: serverTimestamp(),
-    active: true
-  });
+  try {
+    const sessionRef = doc(db, 'sessions', SESSION_ID);
+    await updateDoc(sessionRef, {
+      lastSign: signData, 
+      lastSignAt: serverTimestamp(),
+      lastUpdated: serverTimestamp(),
+      active: true
+    });
+  } catch (error) {
+    console.error("Firebase broadcastSign failed:", error);
+  }
 };
 
 /**
