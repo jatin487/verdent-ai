@@ -99,6 +99,18 @@ const COURSES = [
     lessons: 1,
     duration: "Live",
     desc: "Use your camera to translate sign language gestures into real-time text and speech."
+  },
+  {
+    id: 9,
+    emoji: "📹",
+    title: "Google Meet Companion",
+    category: "Communication",
+    level: "All Levels",
+    badgeCls: "badge-sky",
+    progress: 0,
+    lessons: 1,
+    duration: "External",
+    desc: "Add real-time ISL translation and accessibility overlays to your Google Meet calls."
   }
 ];
 
@@ -112,7 +124,8 @@ const COURSE_PAGE_MAP = {
   5: "arts",
   6: "coding",
   7: "transcriber",
-  8: "signdetector",   // 👈 ADD THIS
+  8: "signdetector", 
+  9: "googlemeet",
 };
 
 export default function Dashboard({ setPage }) {
@@ -147,6 +160,7 @@ export default function Dashboard({ setPage }) {
                <div className="hub-badge">Student Dashboard</div>
                <div className="hub-header-actions">
                   <button className="btn btn-primary btn-sm" onClick={() => setPage('virtualclass')}>🎥 Join Virtual Class</button>
+                  <button className="btn btn-primary btn-sm" onClick={() => setPage('googlemeet')}>📹 Google Meet</button>
                   <button className="btn btn-ghost btn-sm" onClick={() => setPage('transcriber')}>🎥 Live Transcriber</button>
                   <button className="btn btn-ghost btn-sm" onClick={() => setPage('signdetector')}>🤟 Sign Detector</button>
                   <button className="btn btn-ghost btn-sm" onClick={() => setPage('home')}>🏠 Home</button>

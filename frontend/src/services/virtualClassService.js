@@ -2,13 +2,13 @@ import { doc, setDoc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/fi
 import { db } from '../firebase';
 
 const IS_PROD = typeof window !== 'undefined' && !window.location.hostname.includes('localhost');
-const SESSION_ID = IS_PROD ? 'Verdent_Live_Session_Global' : 'VardaanInclusiveClassroom_101';
+const DEFAULT_ROOM_ID = IS_PROD ? 'Verdent_Live_Session_Global' : 'VardaanInclusiveClassroom_101';
 
 /**
  * Teacher starts (or re-activates) the class session.
  */
-export const startClassSession = async (teacherId) => {
-  const sessionRef = doc(db, 'sessions', SESSION_ID);
+export const startClassSession = async (teacherId, roomId = DEFAULT_ROOM_ID) => {
+  const sessionRef = doc(db, 'sessions', roomId);
   await setDoc(sessionRef, {
     teacherId,
     active: true,
@@ -22,8 +22,8 @@ export const startClassSession = async (teacherId) => {
 /**
  * Teacher ends the class session.
  */
-export const endClassSession = async () => {
-  const sessionRef = doc(db, 'sessions', SESSION_ID);
+export const endClassSession = async (roomId = DEFAULT_ROOM_ID) => {
+  const sessionRef = doc(db, 'sessions', roomId);
   await updateDoc(sessionRef, {
     active: false,
     lastUpdated: serverTimestamp(),
@@ -33,9 +33,9 @@ export const endClassSession = async () => {
 /**
  * Broadcast the sign and session data.
  */
-export const broadcastSign = async (signData) => {
+export const broadcastSign = async (signData, roomId = DEFAULT_ROOM_ID) => {
   try {
-    const sessionRef = doc(db, 'sessions', SESSION_ID);
+    const sessionRef = doc(db, 'sessions', roomId);
     await updateDoc(sessionRef, {
       lastSign: signData, 
       lastSignAt: serverTimestamp(),
@@ -50,8 +50,8 @@ export const broadcastSign = async (signData) => {
 /**
  * Subscribe to the class session in real-time (used by both teacher and student).
  */
-export const subscribeToClassSession = (onUpdate) => {
-  const sessionRef = doc(db, 'sessions', SESSION_ID);
+export const subscribeToClassSession = (onUpdate, roomId = DEFAULT_ROOM_ID) => {
+  const sessionRef = doc(db, 'sessions', roomId);
   return onSnapshot(sessionRef, (docSnap) => {
     if (docSnap.exists()) {
       onUpdate(docSnap.data());
@@ -64,8 +64,8 @@ export const subscribeToClassSession = (onUpdate) => {
 /**
  * Student requests clarification for a sign.
  */
-export const broadcastDoubt = async (studentName, signPhrase) => {
-  const sessionRef = doc(db, 'sessions', SESSION_ID);
+export const broadcastDoubt = async (studentName, signPhrase, roomId = DEFAULT_ROOM_ID) => {
+  const sessionRef = doc(db, 'sessions', roomId);
   await updateDoc(sessionRef, {
     lastDoubt: {
       studentName,

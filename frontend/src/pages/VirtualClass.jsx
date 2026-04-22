@@ -14,7 +14,7 @@ import './VirtualClass.css';
 
 const POSE_HOLD_MS = 1200;
 const IS_PROD = typeof window !== 'undefined' && !window.location.hostname.includes('localhost');
-const ROOM_NAME = IS_PROD ? 'Verdent_Live_Session_Global' : 'VardaanInclusiveClassroom_101';
+const DEFAULT_ROOM_NAME = IS_PROD ? 'Verdent_Live_Session_Global' : 'VardaanInclusiveClassroom_101';
 const BACKEND_URL = IS_PROD ? 'https://verdent-ai-backend.onrender.com' : 'http://localhost:5001';
 
 const HAND_CONNECTIONS = [
@@ -43,8 +43,11 @@ export default function VirtualClass({ onBack, setPage }) {
   const { currentUser, userRole: authRole } = useAuth();
   const urlParams = new URLSearchParams(window.location.search);
   const overrideRole = urlParams.get('role');
+  const roomParam = urlParams.get('room');
+  
   const userRole = overrideRole || authRole;
   const isTeacher = userRole === 'teacher';
+  const roomId = roomParam || DEFAULT_ROOM_NAME;
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -69,6 +72,10 @@ export default function VirtualClass({ onBack, setPage }) {
   const [aiExplanation, setAiExplanation] = useState(null);
   const [activeDoubt, setActiveDoubt] = useState(null);
   const [isDoubtPending, setIsDoubtPending] = useState(false);
+  const [newSignFlash, setNewSignFlash] = useState(false);
+  const [voiceText, setVoiceText] = useState("");
+  const [meetLink, setMeetLink] = useState("");
+  const [isMeetMode, setIsMeetMode] = useState(false);
 
   const speak = useCallback((text) => {
     if (!window.speechSynthesis || !text || isTeacher) return;
@@ -106,6 +113,9 @@ export default function VirtualClass({ onBack, setPage }) {
 
       if (phrase && phrase !== "---" && isNewPhrase) {
         setIsDoubtPending(false); // Reset doubt when teacher makes a new sign
+        setNewSignFlash(true);
+        setTimeout(() => setNewSignFlash(false), 2000);
+        
         const entry = { phrase, emoji: emoji || '🤟', time: new Date().toLocaleTimeString() };
         setBroadcastHistory(prev => [entry, ...prev].slice(0, 10));
         if (!isTeacher) {
@@ -127,7 +137,7 @@ export default function VirtualClass({ onBack, setPage }) {
   useEffect(() => {
     let unsub = () => {};
     try {
-      if (isTeacher && currentUser) startClassSession(currentUser.uid);
+      if (isTeacher && currentUser) startClassSession(currentUser.uid, roomId);
 
       unsub = subscribeToClassSession((data) => {
         if (data && data.lastSign) {
@@ -136,13 +146,13 @@ export default function VirtualClass({ onBack, setPage }) {
         if (data && data.lastDoubt) {
           setActiveDoubt(data.lastDoubt);
         }
-      });
+      }, roomId);
     } catch (err) {
       console.error("Class mount error:", err);
     }
 
     const localInterval = setInterval(() => {
-      const localDataRaw = localStorage.getItem("liveSign");
+      const localDataRaw = localStorage.getItem(`liveSign_${roomId}`);
       if (localDataRaw) {
         try { processIncomingSign(JSON.parse(localDataRaw)); } catch(e) {}
       }
@@ -151,9 +161,9 @@ export default function VirtualClass({ onBack, setPage }) {
     return () => { 
       unsub(); 
       clearInterval(localInterval); 
-      if(isTeacher) endClassSession(); 
+      if(isTeacher) endClassSession(roomId); 
     };
-  }, [processIncomingSign, isTeacher, currentUser]);
+  }, [processIncomingSign, isTeacher, currentUser, roomId]);
 
   const broadcastRealTimeUpdate = useCallback((sentence, signPhrase, emoji, voiceTranscript, confidence, explanation) => {
      const data = { 
@@ -166,10 +176,10 @@ export default function VirtualClass({ onBack, setPage }) {
        time: Date.now() 
      };
      if (isTeacher) { 
-        broadcastSign(data);
-        localStorage.setItem("liveSign", JSON.stringify(data)); 
+        broadcastSign(data, roomId);
+        localStorage.setItem(`liveSign_${roomId}`, JSON.stringify(data)); 
      }
-  }, [isTeacher]);
+  }, [isTeacher, roomId]);
 
   const analyzeHand = useCallback(async (landmarks) => {
     if (!landmarks || landmarks.length < 21) { 
@@ -292,7 +302,15 @@ export default function VirtualClass({ onBack, setPage }) {
   const handleDoubt = () => {
     if (!lastReceivedSign) return;
     setIsDoubtPending(true);
-    broadcastDoubt(currentUser?.displayName || "Student", lastReceivedSign);
+    broadcastDoubt(currentUser?.displayName || "Student", lastReceivedSign, roomId);
+  };
+
+  const toggleMeetMode = () => {
+    setIsMeetMode(!isMeetMode);
+    if (!isMeetMode && meetLink) {
+       // Optional: try to open meet in a popup or just notify
+       // window.open(meetLink, '_blank', 'width=800,height=600');
+    }
   };
 
   return (
@@ -302,25 +320,63 @@ export default function VirtualClass({ onBack, setPage }) {
           <button onClick={onBack} className="vc-back-btn">← Back</button>
           <div className="vc-title-wrap">
             <div className={`vc-live-dot ${sessionActive ? 'active' : ''}`} />
-            <span className="vc-title">{isTeacher ? "Broadcaster Portal" : "Student Portal"}</span>
+            <span className="vc-title">
+               {isTeacher ? "Broadcaster Portal" : "Student Portal"} 
+               <small className="vc-room-id"> | Room: {roomId.slice(0,8)}</small>
+            </span>
           </div>
         </div>
         <div className="vc-topbar-right">
+           <button className={`vc-meet-toggle-btn ${isMeetMode ? 'active' : ''}`} onClick={toggleMeetMode}>
+              {isMeetMode ? '✖ Exit Meet Mode' : '📹 Google Meet Companion'}
+           </button>
            {isTeacher && <button className={`vc-voice-btn ${isListening ? 'active' : ''}`} onClick={toggleVoice}>{isListening ? '🛑 Stop' : '🎙️ Voice'}</button>}
-           <a href={`/virtual-class?role=${isTeacher ? 'student' : 'teacher'}`} className="vc-role-switch">Switch View ↗</a>
+           <a href={`/virtual-class?role=${isTeacher ? 'student' : 'teacher'}&room=${roomId}`} className="vc-role-switch">Switch View ↗</a>
         </div>
       </div>
 
       <div className="vc-layout">
-        <div className="vc-jitsi-panel">
-          <iframe title="Jitsi" src={`https://meet.jit.si/${ROOM_NAME}#config.prejoinPageEnabled=false`} allow="camera; microphone; fullscreen" className="vc-jitsi-iframe" />
+        <div className={`vc-jitsi-panel ${isMeetMode ? 'meet-active' : ''}`}>
+          {isMeetMode ? (
+             <div className="vc-meet-companion">
+                <div className="vc-meet-input-card glass-card">
+                   <h3>Google Meet Integration</h3>
+                   <p>Paste your meeting link below. CAST will stay active as an accessibility companion.</p>
+                   <div className="vc-meet-input-group">
+                      <input 
+                         type="text" 
+                         placeholder="https://meet.google.com/xxx-xxxx-xxx" 
+                         value={meetLink}
+                         onChange={(e) => setMeetLink(e.target.value)}
+                         className="vc-meet-input"
+                      />
+                      <button className="btn btn-primary" onClick={() => window.open(meetLink || 'https://meet.google.com/new', '_blank')}>
+                         Open Meet & Sycn
+                      </button>
+                   </div>
+                   <div className="vc-meet-hint">
+                      CAST detects your signs and broadcasts them to the "Teacher's Board" in real-time, even while you are in the Google Meet call.
+                   </div>
+                </div>
+                <div className="vc-meet-preview-stream">
+                   <video ref={videoRef} playsInline muted autoPlay className="vc-video-mini" />
+                   <div className="vc-stream-overlay">My Camera (Detecting...)</div>
+                </div>
+             </div>
+          ) : (
+             <iframe title="Jitsi" src={`https://meet.jit.si/${roomId}#config.prejoinPageEnabled=false`} allow="camera; microphone; fullscreen" className="vc-jitsi-iframe" />
+          )}
           
           {sessionActive && (receivedSentence || currentSentence || voiceText) && (
-            <div className="vc-video-captions">
+            <div className={`vc-video-captions ${newSignFlash ? 'flash' : ''}`}>
               <div className="vc-caption-tag">{isTeacher ? 'MY BROADCAST' : 'TEACHER TRACKING'}</div>
               <div className="vc-caption-text">
                 {voiceText && <div className="vc-voice-text">🎙️ {voiceText}</div>}
-                {(receivedSentence || currentSentence) && <div className="vc-sign-sentence">{isTeacher ? currentSentence : receivedSentence}</div>}
+                {(receivedSentence || currentSentence) && (
+                  <div className={`vc-sign-sentence ${newSignFlash ? 'highlight' : ''}`}>
+                    {isTeacher ? currentSentence : receivedSentence}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -329,10 +385,12 @@ export default function VirtualClass({ onBack, setPage }) {
         <div className="vc-comm-panel">
           <div className="vc-panel-section">
             <div className="vc-section-title">👨‍🏫 Teacher's Board (Live)</div>
-            <div className="vc-student-sign-box">
+            <div className={`vc-student-sign-box ${newSignFlash ? 'new-sign' : ''}`}>
               {!sessionActive ? <p>Awaiting teacher broadcast...</p> : (
                 <div className="vc-sign-display">
-                  <span className="vc-sign-phrase">{isTeacher ? (detectedSign || "...") : (lastReceivedSign || "...")}</span>
+                  <span className={`vc-sign-phrase ${newSignFlash ? 'pop' : ''}`}>
+                     {isTeacher ? (detectedSign || "...") : (lastReceivedSign || "...")}
+                  </span>
                   {(receivedSentence || currentSentence) && <p className="vc-voice-small">{isTeacher ? currentSentence : receivedSentence}</p>}
                 </div>
               )}
@@ -355,30 +413,32 @@ export default function VirtualClass({ onBack, setPage }) {
             )}
           </div>
 
-          <div className="vc-panel-section">
-            <div className="vc-section-title">{isTeacher ? "AI Studio Area" : "Practice Support"}</div>
-            <div className="vc-camera-box">
-              <video ref={videoRef} playsInline muted autoPlay className="vc-video-element" />
-              <canvas ref={canvasRef} className="vc-skeleton-canvas" />
-              {camStatus !== 'active' && (
-                <div className="vc-camera-placeholder">
-                  <p className="vc-placeholder-text">Camera Hidden</p>
-                  <button className="vc-retry-btn" onClick={startCamera}>Start {isTeacher ? 'Broadcaster' : 'Practice'} AI</button>
-                </div>
-              )}
-              {detectedSign && (
-                <div className="vc-overlay-sign">
-                  <span className="vc-overlay-text">{detectedSign}</span>
-                  <div className="vc-hold-bar"><div className="vc-hold-fill" style={{ width: `${holdProgress}%` }} /></div>
-                </div>
-              )}
-            </div>
-            {!isTeacher && (
-               <div className="vc-practice-hint">
-                  <p>Observing Teacher signs. Translations sync automatically on the board above.</p>
+          {!isMeetMode && (
+             <div className="vc-panel-section">
+               <div className="vc-section-title">{isTeacher ? "AI Studio Area" : "Practice Support"}</div>
+               <div className="vc-camera-box">
+                 <video ref={videoRef} playsInline muted autoPlay className="vc-video-element" />
+                 <canvas ref={canvasRef} className="vc-skeleton-canvas" />
+                 {camStatus !== 'active' && (
+                   <div className="vc-camera-placeholder">
+                     <p className="vc-placeholder-text">Camera Hidden</p>
+                     <button className="vc-retry-btn" onClick={startCamera}>Start {isTeacher ? 'Broadcaster' : 'Practice'} AI</button>
+                   </div>
+                 )}
+                 {detectedSign && (
+                   <div className="vc-overlay-sign">
+                     <span className="vc-overlay-text">{detectedSign}</span>
+                     <div className="vc-hold-bar"><div className="vc-hold-fill" style={{ width: `${holdProgress}%` }} /></div>
+                   </div>
+                 )}
                </div>
-            )}
-          </div>
+               {!isTeacher && (
+                  <div className="vc-practice-hint">
+                     <p>Observing Teacher signs. Translations sync automatically on the board above.</p>
+                  </div>
+               )}
+             </div>
+          )}
           
           <div className="vc-panel-section history">
             <div className="vc-section-title">🤖 Verdent AI Insights</div>

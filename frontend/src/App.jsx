@@ -15,6 +15,7 @@ import CreativeArts from "./pages/CreativeArts";
 import CodingAccessibility from "./pages/CodingAccessibility";
 import VideoTranscriber from "./pages/VideoTranscriber";
 import VirtualClass from "./pages/VirtualClass";
+import GoogleMeet from "./pages/GoogleMeet";
 
 import RoleSelection from "./pages/RoleSelection";
 import AuthPage from "./pages/AuthPage";
@@ -23,7 +24,7 @@ import TeacherDashboard from "./pages/TeacherDashboard";
 // Pages that are full-screen and manage their own layout (no shared Navbar)
 const FULL_SCREEN_PAGES = new Set([
   "home", "dashboard", "transcriber", "teacherDashboard",
-  "alphabet", "signdetector", "virtualclass",
+  "alphabet", "signdetector", "virtualclass", "googlemeet",
 ]);
 
 function MainRouter() {
@@ -89,6 +90,7 @@ function MainRouter() {
     arts: CreativeArts,
     coding: CodingAccessibility,
     transcriber: VideoTranscriber,
+    googlemeet: GoogleMeet,
     teacherDashboard: TeacherDashboard,
   };
 

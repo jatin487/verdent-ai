@@ -51,6 +51,12 @@ export default function TeacherDashboard({ setPage }) {
           >
             <span>🎥</span> Virtual Class
           </button>
+          <button
+            className="sidebar-btn"
+            onClick={() => setPage('googlemeet')}
+          >
+            <span>📹</span> Google Meet
+          </button>
           <button className="sidebar-btn" onClick={() => setPage('home')}>
             <span>🏠</span> Home
           </button>
@@ -165,9 +171,14 @@ export default function TeacherDashboard({ setPage }) {
               <div className="meeting-icon">🎓</div>
               <h3>Ready to teach?</h3>
               <p>Click below to open the full virtual classroom where you can broadcast signs live to all connected students.</p>
-              <button className="btn btn-primary btn-lg" onClick={() => setPage('virtualclass')}>
-                🚀 Start Class Now
-              </button>
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                <button className="btn btn-primary btn-lg" onClick={() => setPage('virtualclass')}>
+                  🚀 Start Class Now
+                </button>
+                <button className="btn btn-primary btn-lg" onClick={() => setPage('googlemeet')}>
+                  📹 Google Meet
+                </button>
+              </div>
             </div>
           </div>
         )}

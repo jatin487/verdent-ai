@@ -8,6 +8,7 @@ const NAV_LINKS = [
   { id: "dashboard", label: "Courses", icon: "📚" },
   { id: "signdetector", label: "Sign Detector", icon: "🤝" },
   { id: "transcriber", label: "Video Transcribe", icon: "📽️" },
+  { id: "googlemeet", label: "Google Meet", icon: "📹" },
 ];
 
 export default function Navbar({ page, setPage }) {
