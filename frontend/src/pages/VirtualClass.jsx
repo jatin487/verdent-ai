@@ -10,12 +10,12 @@ import {
   endClassSession,
   broadcastDoubt,
 } from '../services/virtualClassService';
+import { predictSignLocally } from '../services/signAiService';
 import './VirtualClass.css';
 
 const POSE_HOLD_MS = 1200;
 const IS_PROD = typeof window !== 'undefined' && !window.location.hostname.includes('localhost');
 const DEFAULT_ROOM_NAME = IS_PROD ? 'Verdent_Live_Session_Global' : 'VardaanInclusiveClassroom_101';
-const BACKEND_URL = IS_PROD ? 'https://verdent-ai-backend.onrender.com' : 'http://localhost:5001';
 
 const HAND_CONNECTIONS = [
   [0,1],[1,2],[2,3],[3,4],
@@ -209,22 +209,13 @@ export default function VirtualClass({ onBack, setPage }) {
     let confidence = 0.92 + Math.random() * 0.07; // Simulated precision
     let explanation = "";
 
-    // If no gesture match, try the Backend AI for Alpha letters
+    // If no gesture match, try the Local Heuristic AI
     if (!currentDetect) {
-      try {
-        const flatLandmarks = landmarks.flatMap(lm => [lm.x, lm.y, lm.z]);
-        const response = await fetch(`${BACKEND_URL}/predict`, {
-          method: 'POST',
-          body: JSON.stringify({ landmarks: flatLandmarks }),
-        });
-        const aiData = await response.json();
-        if (aiData.label && aiData.confidence > 0.6) {
-          currentDetect = `Letter ${aiData.label}`;
-          confidence = aiData.confidence;
-          explanation = `AI identified the character "${aiData.label}" from standard ASL alphabet patterns.`;
-        }
-      } catch (e) {
-        console.warn("AI Backend unreachable", e);
+      const aiResult = predictSignLocally(landmarks);
+      if (aiResult && aiResult.confidence > 0.6) {
+        currentDetect = aiResult.label;
+        confidence = aiResult.confidence;
+        explanation = aiResult.explanation;
       }
     } else {
       explanation = `Matched custom educational gesture: "${currentDetect}".`;

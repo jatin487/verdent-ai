@@ -160,6 +160,7 @@ def get_labels():
 
 # ── Run ──────────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    print("\n🚀 Verdent Backend starting on http://localhost:5001\n")
-    app.run(host="0.0.0.0", port=5001, debug=False)
+    port = int(os.environ.get("PORT", 5001))
+    print(f"\n🚀 Verdent Backend starting on port {port}\n")
+    app.run(host="0.0.0.0", port=port, debug=False)
 

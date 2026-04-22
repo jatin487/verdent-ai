@@ -3,9 +3,8 @@ import { useA11y } from '../context/AccessibilityContext'
 import { GESTURE_DICTIONARY } from '../data/gestures'
 import './SignDetector.css'
 
-const BACKEND_URL = window.location.hostname.includes('localhost') 
-  ? 'http://localhost:5001' 
-  : 'https://verdent-ai-backend.onrender.com'; // Production Render Backend
+import { predictSignLocally } from '../services/signAiService'
+import './SignDetector.css'
 
 const POSE_HOLD_MS = 1000
 
@@ -172,6 +171,12 @@ export default function SignDetector() {
 
     if (match) {
       currentDetect = match.phrase;
+    } else {
+      // Fallback to Local AI Heuristics
+      const aiResult = predictSignLocally(landmarks);
+      if (aiResult) {
+        currentDetect = aiResult.label;
+      }
     }
 
     setDetectedLetter(currentDetect)
