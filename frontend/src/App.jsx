@@ -20,11 +20,13 @@ import GoogleMeet from "./pages/GoogleMeet";
 import RoleSelection from "./pages/RoleSelection";
 import AuthPage from "./pages/AuthPage";
 import TeacherDashboard from "./pages/TeacherDashboard";
+import LiveClass from "./pages/LiveClass";
+import AiDoubtAssistant from "./components/AiDoubtAssistant";
 
 // Pages that are full-screen and manage their own layout (no shared Navbar)
 const FULL_SCREEN_PAGES = new Set([
   "home", "dashboard", "transcriber", "teacherDashboard",
-  "alphabet", "signdetector", "virtualclass", "googlemeet",
+  "alphabet", "signdetector", "virtualclass", "googlemeet", "liveclass",
 ]);
 
 function MainRouter() {
@@ -92,6 +94,7 @@ function MainRouter() {
     transcriber: VideoTranscriber,
     googlemeet: GoogleMeet,
     teacherDashboard: TeacherDashboard,
+    liveclass: LiveClass,
   };
 
   const PageComponent = PAGE_MAP[page] || LandingPage;
@@ -111,7 +114,9 @@ export default function App() {
     <AuthProvider>
       <A11yProvider>
         <MainRouter />
+        <AiDoubtAssistant />
       </A11yProvider>
     </AuthProvider>
   );
 }
+

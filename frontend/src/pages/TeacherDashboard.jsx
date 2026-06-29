@@ -46,6 +46,12 @@ export default function TeacherDashboard({ setPage }) {
             <span>📊</span> Live Progress
           </button>
           <button
+            className="sidebar-btn"
+            onClick={() => setPage('liveclass')}
+          >
+            <span>🎓</span> Host Live Class
+          </button>
+          <button
             className={`sidebar-btn ${activeTab === 'meeting' ? 'active' : ''}`}
             onClick={() => setActiveTab('meeting')}
           >
@@ -172,8 +178,11 @@ export default function TeacherDashboard({ setPage }) {
               <h3>Ready to teach?</h3>
               <p>Click below to open the full virtual classroom where you can broadcast signs live to all connected students.</p>
               <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                <button className="btn btn-primary btn-lg" onClick={() => setPage('liveclass')}>
+                  🎓 Host Live Class (Gesture)
+                </button>
                 <button className="btn btn-primary btn-lg" onClick={() => setPage('virtualclass')}>
-                  🚀 Start Class Now
+                  🚀 Start Class (Jitsi)
                 </button>
                 <button className="btn btn-primary btn-lg" onClick={() => setPage('googlemeet')}>
                   📹 Google Meet

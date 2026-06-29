@@ -1,0 +1,418 @@
+/* ── LiveClass CSS ── Premium Dark Theme & Immersive layout ── */
+
+.lc-root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #030712;
+  color: #f3f4f6;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  overflow: hidden;
+}
+
+/* ── Top Bar ── */
+.lc-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  background: rgba(17, 24, 39, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  z-index: 10;
+  height: 70px;
+}
+
+.lc-topbar-left, .lc-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.lc-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.lc-live-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: lcPulse 1.8s infinite;
+}
+
+@keyframes lcPulse {
+  0% { transform: scale(0.9); opacity: 0.6; }
+  50% { transform: scale(1.15); opacity: 1; box-shadow: 0 0 12px rgba(239, 68, 68, 0.75); }
+  100% { transform: scale(0.9); opacity: 0.6; }
+}
+
+.lc-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #f9fafb;
+}
+
+.lc-back-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #d1d5db;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.lc-back-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.lc-role-switch {
+  text-decoration: none;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #06b6d4;
+  background: rgba(6, 182, 212, 0.1);
+  border: 1px solid rgba(6, 182, 212, 0.2);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.lc-role-switch:hover {
+  background: rgba(6, 182, 212, 0.18);
+}
+
+.lc-voice-btn {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #fca5a5;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lc-voice-btn.active {
+  background: #ef4444;
+  color: #fff;
+  border-color: #ef4444;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.4);
+}
+
+/* ── Layout ── */
+.lc-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.lc-video-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background: #000;
+}
+
+.lc-camera-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.lc-video-element {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.lc-skeleton-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: scaleX(-1);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.lc-placeholder {
+  position: absolute;
+  inset: 0;
+  background: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  color: #94a3b8;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+/* ── HUD overlay ── */
+.lc-gesture-hud {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  width: 200px;
+  background: rgba(17, 24, 39, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1rem;
+  backdrop-filter: blur(16px);
+  z-index: 5;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+}
+
+.lc-hud-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.lc-hud-title {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: #9ca3af;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.lc-hud-conf {
+  font-size: 0.65rem;
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  padding: 0.15rem 0.4rem;
+  border-radius: 9999px;
+  font-weight: 700;
+}
+
+.lc-hud-value {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #38bdf8;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.01em;
+}
+
+.lc-hud-bar {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.lc-hud-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1, #06b6d4);
+  transition: width 0.1s linear;
+}
+
+/* ── Subtitles Overlay ── */
+.lc-subtitles-bar {
+  background: rgba(10, 11, 20, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 1.25rem 2rem;
+  z-index: 3;
+}
+
+.lc-caption-tag {
+  font-size: 0.65rem;
+  font-weight: 900;
+  color: #6366f1;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.5rem;
+}
+
+.lc-subtitle-text {
+  min-height: 44px;
+}
+
+.lc-voice-sub {
+  color: #e5e7eb;
+  font-size: 1.1rem;
+  margin: 0;
+  font-weight: 500;
+}
+
+.lc-gesture-sub {
+  color: #06b6d4;
+  font-size: 1.4rem;
+  margin: 0.25rem 0 0 0;
+  font-weight: 800;
+}
+
+.lc-muted-sub {
+  color: #4b5563;
+  font-size: 0.95rem;
+  font-style: italic;
+  margin: 0;
+}
+
+/* ── Right Panel ── */
+.lc-control-panel {
+  width: 380px;
+  background: #0b0f19;
+  border-left: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  z-index: 4;
+}
+
+.lc-section {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.lc-section.actions {
+  flex: 0 0 auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(17, 24, 39, 0.4);
+}
+
+.lc-section-title {
+  font-size: 0.75rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.075em;
+  color: #4b5563;
+  margin-bottom: 1rem;
+}
+
+.lc-transcript-container {
+  flex: 1;
+  background: rgba(17, 24, 39, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.lc-empty {
+  font-size: 0.85rem;
+  color: #4b5563;
+  text-align: center;
+  margin-top: 2rem;
+  line-height: 1.5;
+}
+
+.lc-transcript-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.lc-transcript-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  animation: lcFadeIn 0.3s ease-out;
+}
+
+@keyframes lcFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.lc-time {
+  font-size: 0.65rem;
+  color: #4b5563;
+  font-weight: 600;
+}
+
+.lc-text {
+  font-size: 0.9rem;
+  color: #e5e7eb;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* ── Actions & Doubt HUD ── */
+.lc-teacher-actions, .lc-student-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.lc-btn {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.lc-btn.reset {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.lc-btn.reset:hover {
+  background: rgba(239, 68, 68, 0.16);
+}
+
+.lc-btn.doubt {
+  background: rgba(6, 182, 212, 0.1);
+  color: #22d3ee;
+  border: 1px solid rgba(6, 182, 212, 0.25);
+}
+
+.lc-btn.doubt:hover:not(:disabled) {
+  background: rgba(6, 182, 212, 0.18);
+  transform: translateY(-1px);
+}
+
+.lc-btn.doubt.pending {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.lc-doubt-alert {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 8px;
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.lc-doubt-alert span {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #f59e0b;
+  line-height: 1.4;
+}
+
+.lc-doubt-resolve {
+  background: #f59e0b;
+  color: #1e1b4b;
+  font-size: 0.75rem;
+  font-weight: 800;
+  border: none;
+  padding: 0.4rem;
+  border-radius: 6px;
+  cursor: pointer;
+}

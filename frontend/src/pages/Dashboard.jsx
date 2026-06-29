@@ -111,6 +111,18 @@ const COURSES = [
     lessons: 1,
     duration: "External",
     desc: "Add real-time ISL translation and accessibility overlays to your Google Meet calls."
+  },
+  {
+    id: 10,
+    emoji: "🎓",
+    title: "Interactive Live Class",
+    category: "Live Class",
+    level: "All Levels",
+    badgeCls: "badge-violet",
+    progress: 0,
+    lessons: 1,
+    duration: "Live Now",
+    desc: "Join real-time lessons where live gestures convert directly to speech and scrolling transcript."
   }
 ];
 
@@ -126,6 +138,7 @@ const COURSE_PAGE_MAP = {
   7: "transcriber",
   8: "signdetector", 
   9: "googlemeet",
+  10: "liveclass",
 };
 
 export default function Dashboard({ setPage }) {
@@ -159,6 +172,7 @@ export default function Dashboard({ setPage }) {
             <div className="hub-header-row">
                <div className="hub-badge">Student Dashboard</div>
                <div className="hub-header-actions">
+                  <button className="btn btn-primary btn-sm" onClick={() => setPage('liveclass')}>🎓 Join Live Class</button>
                   <button className="btn btn-primary btn-sm" onClick={() => setPage('virtualclass')}>🎥 Join Virtual Class</button>
                   <button className="btn btn-primary btn-sm" onClick={() => setPage('googlemeet')}>📹 Google Meet</button>
                   <button className="btn btn-ghost btn-sm" onClick={() => setPage('transcriber')}>🎥 Live Transcriber</button>

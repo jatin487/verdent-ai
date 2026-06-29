@@ -1,0 +1,592 @@
+/* AI Doubt Assistant CSS Styling */
+
+/* Floating Launch Button */
+.doubt-assistant__launcher {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--clr-accent-1) 0%, var(--clr-accent-2) 100%);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 32px rgba(124, 106, 247, 0.4), 0 0 20px rgba(14, 165, 233, 0.2);
+  cursor: pointer;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.doubt-assistant__launcher:hover {
+  transform: scale(1.1) rotate(15deg);
+  box-shadow: 0 12px 40px rgba(124, 106, 247, 0.6), 0 0 30px rgba(14, 165, 233, 0.4);
+}
+
+/* Background listener pulse */
+.doubt-assistant__launcher.listening::after {
+  content: '';
+  position: absolute;
+  top: -6px; left: -6px; right: -6px; bottom: -6px;
+  border-radius: 50%;
+  border: 2px dashed var(--clr-accent-2);
+  animation: rotate-pulse 4s linear infinite;
+  opacity: 0.8;
+}
+
+@keyframes rotate-pulse {
+  0% { transform: rotate(0deg) scale(1); opacity: 0.8; }
+  50% { transform: rotate(180deg) scale(1.08); opacity: 1; }
+  100% { transform: rotate(360deg) scale(1); opacity: 0.8; }
+}
+
+/* Outer Panel Container */
+.doubt-assistant__panel {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 480px;
+  height: 640px;
+  background: rgba(26, 21, 44, 0.85);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--r-xl);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 50px rgba(124, 106, 247, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 1000;
+  transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+  animation: slide-in-scale 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards;
+}
+
+@keyframes slide-in-scale {
+  from { opacity: 0; transform: scale(0.85) translate(20px, 20px); }
+  to { opacity: 1; transform: scale(1) translate(0, 0); }
+}
+
+/* Panel Header */
+.doubt-assistant__header {
+  background: linear-gradient(90deg, rgba(124, 106, 247, 0.25) 0%, rgba(14, 165, 233, 0.15) 100%);
+  padding: 1.2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.doubt-assistant__title-block {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.doubt-assistant__status-icon {
+  font-size: 1.6rem;
+  animation: bobble 2s ease-in-out infinite;
+}
+
+@keyframes bobble {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.doubt-assistant__title {
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.doubt-assistant__subtitle {
+  font-size: 0.75rem;
+  color: var(--clr-accent-2);
+  display: block;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.doubt-assistant__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.doubt-assistant__close-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1.2rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.doubt-assistant__close-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+/* Chat Body */
+.doubt-assistant__chat-body {
+  flex: 1;
+  padding: 1.2rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Message Bubbles */
+.doubt-assistant__message {
+  display: flex;
+  flex-direction: column;
+  max-width: 85%;
+  animation: fade-in-up 0.3s ease forwards;
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.doubt-assistant__message.ai {
+  align-self: flex-start;
+}
+
+.doubt-assistant__message.user {
+  align-self: flex-end;
+}
+
+.doubt-assistant__msg-sender {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
+  padding-left: 0.4rem;
+}
+
+.doubt-assistant__message.user .doubt-assistant__msg-sender {
+  align-self: flex-end;
+  padding-right: 0.4rem;
+}
+
+.doubt-assistant__msg-bubble {
+  padding: 0.85rem 1.1rem;
+  border-radius: var(--r-md);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.doubt-assistant__message.ai .doubt-assistant__msg-bubble {
+  background: rgba(255, 255, 255, 0.05);
+  color: #e2e8f0;
+  border-bottom-left-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.doubt-assistant__message.user .doubt-assistant__msg-bubble {
+  background: linear-gradient(135deg, rgba(124, 106, 247, 0.8) 0%, rgba(14, 165, 233, 0.7) 100%);
+  color: #fff;
+  border-bottom-right-radius: 2px;
+  box-shadow: 0 4px 12px rgba(124, 106, 247, 0.15);
+}
+
+/* Input Area Container */
+.doubt-assistant__input-wrap {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 12, 30, 0.9);
+  padding: 1rem;
+}
+
+/* Input Selection Modes */
+.doubt-assistant__mode-selector {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.8rem;
+  justify-content: center;
+}
+
+.doubt-assistant__mode-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.7);
+  padding: 0.4rem 0.8rem;
+  border-radius: var(--r-full);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.2s ease;
+}
+
+.doubt-assistant__mode-btn.active {
+  background: linear-gradient(135deg, rgba(124, 106, 247, 0.3) 0%, rgba(14, 165, 233, 0.3) 100%);
+  border-color: rgba(124, 106, 247, 0.5);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(124, 106, 247, 0.2);
+}
+
+/* Mode input controls */
+.doubt-assistant__text-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.doubt-assistant__text-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--r-md);
+  color: #fff;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.doubt-assistant__text-input:focus {
+  outline: none;
+  border-color: var(--clr-accent-1);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.doubt-assistant__send-btn {
+  background: var(--clr-accent-1);
+  border: none;
+  color: #fff;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.doubt-assistant__send-btn:hover {
+  background: #6b58e6;
+  transform: translateY(-2px);
+}
+
+/* Voice Input Controls */
+.doubt-assistant__voice-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0;
+}
+
+.doubt-assistant__mic-trigger {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 1.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.doubt-assistant__mic-trigger.recording {
+  background: #ef4444;
+  border-color: #f87171;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+  animation: mic-pulse 1.5s infinite;
+}
+
+@keyframes mic-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.doubt-assistant__voice-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.doubt-assistant__voice-text {
+  font-size: 0.88rem;
+  color: #e2e8f0;
+  text-align: center;
+  font-style: italic;
+  max-width: 90%;
+}
+
+/* Camera (Sign Language) Panel */
+.doubt-assistant__cam-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  align-items: center;
+}
+
+.doubt-assistant__video-container {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  height: 200px;
+  background: #000;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.doubt-assistant__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.doubt-assistant__canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.doubt-assistant__cam-placeholder {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 12, 30, 0.9);
+  padding: 1rem;
+  text-align: center;
+}
+
+.doubt-assistant__cam-placeholder p {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 0.6rem;
+}
+
+.doubt-assistant__cam-toggle {
+  background: var(--clr-accent-1);
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.doubt-assistant__cam-toggle:hover {
+  background: #6b58e6;
+}
+
+/* Sign Hud inside widget */
+.doubt-assistant__sign-hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 320px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.5rem 0.8rem;
+  border-radius: var(--r-sm);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.doubt-assistant__sign-text {
+  font-size: 0.85rem;
+  color: #e2e8f0;
+}
+
+.doubt-assistant__sign-val {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--clr-accent-2);
+}
+
+/* Avatar Canvas Overlay / Area */
+.doubt-assistant__avatar-container {
+  display: flex;
+  background: linear-gradient(180deg, rgba(20, 16, 38, 0.8) 0%, rgba(12, 8, 24, 0.9) 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.8rem 1.2rem;
+  align-items: center;
+  gap: 1.2rem;
+  min-height: 120px;
+}
+
+.doubt-assistant__avatar-face-wrap {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(124, 106, 247, 0.2) 0%, rgba(14, 165, 233, 0.05) 100%);
+  border: 1px solid rgba(124, 106, 247, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 15px rgba(124, 106, 247, 0.15);
+}
+
+.doubt-assistant__avatar-face {
+  width: 100%;
+  height: 100%;
+}
+
+.doubt-assistant__avatar-hand-wrap {
+  flex: 1;
+  height: 100px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--r-md);
+  position: relative;
+  overflow: hidden;
+}
+
+.doubt-assistant__avatar-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.doubt-assistant__avatar-overlay-text {
+  position: absolute;
+  bottom: 4px;
+  right: 8px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.doubt-assistant__avatar-sign-bubble {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: rgba(14, 165, 233, 0.2);
+  border: 1px solid rgba(14, 165, 233, 0.4);
+  color: #38bdf8;
+  padding: 0.15rem 0.4rem;
+  border-radius: var(--r-sm);
+  font-size: 0.75rem;
+  font-weight: 700;
+  animation: sign-bubble-pop 0.3s ease;
+}
+
+@keyframes sign-bubble-pop {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* Post-Class Overlay Modal */
+.doubt-assistant__post-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(8, 5, 20, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fade-in 0.3s ease forwards;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.doubt-assistant__post-modal {
+  background: rgba(26, 21, 44, 0.95);
+  border: 1px solid rgba(124, 106, 247, 0.3);
+  border-radius: var(--r-xl);
+  padding: 2.5rem;
+  width: 90%;
+  max-width: 520px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 40px rgba(124, 106, 247, 0.25);
+  animation: slide-in-scale 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.15) forwards;
+}
+
+.doubt-assistant__post-emoji {
+  font-size: 3.8rem;
+  margin-bottom: 1rem;
+  animation: bounce-slow 2.5s infinite;
+}
+
+@keyframes bounce-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.doubt-assistant__post-title {
+  font-size: 1.8rem;
+  color: #fff;
+  margin-bottom: 0.8rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #fff 0%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.doubt-assistant__post-desc {
+  font-size: 0.98rem;
+  color: #cbd5e1;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.doubt-assistant__post-btns {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.doubt-assistant__post-btn {
+  padding: 0.8rem 1.6rem;
+  border-radius: var(--r-md);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.doubt-assistant__post-btn.primary {
+  background: linear-gradient(135deg, var(--clr-accent-1) 0%, var(--clr-accent-2) 100%);
+  color: #fff;
+  border: none;
+  box-shadow: 0 4px 15px rgba(124, 106, 247, 0.4);
+}
+
+.doubt-assistant__post-btn.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(124, 106, 247, 0.6);
+}
+
+.doubt-assistant__post-btn.secondary {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+}
+
+.doubt-assistant__post-btn.secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}

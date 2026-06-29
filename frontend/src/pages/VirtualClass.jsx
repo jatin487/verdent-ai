@@ -304,11 +304,19 @@ export default function VirtualClass({ onBack, setPage }) {
     }
   };
 
+  const handleLeaveClass = () => {
+    if (!isTeacher) {
+      window.dispatchEvent(new CustomEvent('verdent-class-ended'));
+    }
+    onBack();
+  };
+
+
   return (
     <div className="vc-root">
       <div className="vc-topbar">
         <div className="vc-topbar-left">
-          <button onClick={onBack} className="vc-back-btn">← Back</button>
+          <button onClick={handleLeaveClass} className="vc-back-btn">← Back</button>
           <div className="vc-title-wrap">
             <div className={`vc-live-dot ${sessionActive ? 'active' : ''}`} />
             <span className="vc-title">
