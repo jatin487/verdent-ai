@@ -22,11 +22,12 @@ import AuthPage from "./pages/AuthPage";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import LiveClass from "./pages/LiveClass";
 import AiDoubtAssistant from "./components/AiDoubtAssistant";
+import LiveObjectExplainer from "./pages/LiveObjectExplainer";
 
 // Pages that are full-screen and manage their own layout (no shared Navbar)
 const FULL_SCREEN_PAGES = new Set([
   "home", "dashboard", "transcriber", "teacherDashboard",
-  "alphabet", "signdetector", "virtualclass", "googlemeet", "liveclass",
+  "alphabet", "signdetector", "virtualclass", "googlemeet", "liveclass", "liveobject",
 ]);
 
 function MainRouter() {
@@ -95,6 +96,7 @@ function MainRouter() {
     googlemeet: GoogleMeet,
     teacherDashboard: TeacherDashboard,
     liveclass: LiveClass,
+    liveobject: LiveObjectExplainer,
   };
 
   const PageComponent = PAGE_MAP[page] || LandingPage;

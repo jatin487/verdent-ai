@@ -123,6 +123,18 @@ const COURSES = [
     lessons: 1,
     duration: "Live Now",
     desc: "Join real-time lessons where live gestures convert directly to speech and scrolling transcript."
+  },
+  {
+    id: 11,
+    emoji: "📷",
+    title: "Live Object Explainer",
+    category: "Accessible Tool",
+    level: "All Levels",
+    badgeCls: "badge-green",
+    progress: 0,
+    lessons: 1,
+    duration: "Live",
+    desc: "Point your camera at any real-world object — ATM, medicine, device, ticket machine — and AI explains what it is, how to use it, in text, speech and sign language."
   }
 ];
 
@@ -139,6 +151,7 @@ const COURSE_PAGE_MAP = {
   8: "signdetector", 
   9: "googlemeet",
   10: "liveclass",
+  11: "liveobject",
 };
 
 export default function Dashboard({ setPage }) {

@@ -1,0 +1,965 @@
+/* ============================================================
+   Live Object Explainer — Full Page Styles
+   Dark glassmorphic split-layout design
+   ============================================================ */
+
+/* ── Page Root ───────────────────────────────────────────── */
+.loe-root {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0d0a1a 0%, #0f1629 50%, #0a1a12 100%);
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  color: #e2e8f0;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Ambient background orbs */
+.loe-root::before {
+  content: '';
+  position: fixed;
+  top: -20%;
+  left: -10%;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(124, 106, 247, 0.12) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: loe-orb-drift 12s ease-in-out infinite alternate;
+}
+
+.loe-root::after {
+  content: '';
+  position: fixed;
+  bottom: -10%;
+  right: -5%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: loe-orb-drift 15s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes loe-orb-drift {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(40px, 30px) scale(1.1); }
+}
+
+/* ── Top Navigation Bar ──────────────────────────────────── */
+.loe-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 2rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 10;
+  flex-shrink: 0;
+}
+
+.loe-topbar__left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.loe-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.loe-back-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.loe-title-block {
+  display: flex;
+  flex-direction: column;
+}
+
+.loe-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  background: linear-gradient(90deg, #fff 0%, #a78bfa 60%, #38bdf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.3px;
+}
+
+.loe-subtitle {
+  font-size: 0.72rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-weight: 500;
+}
+
+.loe-topbar__right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.loe-status-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.loe-status-pill.idle {
+  background: rgba(100, 116, 139, 0.15);
+  border-color: rgba(100, 116, 139, 0.2);
+  color: #94a3b8;
+}
+
+.loe-status-pill.detecting {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #34d399;
+  animation: loe-status-pulse 2s ease-in-out infinite;
+}
+
+.loe-status-pill.locked {
+  background: rgba(124, 106, 247, 0.2);
+  border-color: rgba(124, 106, 247, 0.4);
+  color: #a78bfa;
+}
+
+.loe-status-pill.loading {
+  background: rgba(14, 165, 233, 0.15);
+  border-color: rgba(14, 165, 233, 0.3);
+  color: #38bdf8;
+}
+
+.loe-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.loe-status-pill.detecting .loe-status-dot {
+  animation: loe-dot-blink 1s infinite;
+}
+
+@keyframes loe-status-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  50%       { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.1); }
+}
+
+@keyframes loe-dot-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+/* ── Browse Mode Toggle ──────────────────────────────────── */
+.loe-mode-toggle {
+  display: flex;
+  gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  padding: 0.25rem;
+}
+
+.loe-mode-btn {
+  padding: 0.35rem 0.9rem;
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  transition: all 0.2s ease;
+}
+
+.loe-mode-btn.active {
+  background: linear-gradient(135deg, rgba(124, 106, 247, 0.8) 0%, rgba(14, 165, 233, 0.8) 100%);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(124, 106, 247, 0.3);
+}
+
+/* ── Main Split Layout ───────────────────────────────────── */
+.loe-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  padding: 1.5rem 2rem;
+  overflow: hidden;
+  max-height: calc(100vh - 72px);
+}
+
+/* ── Left Panel — Camera ─────────────────────────────────── */
+.loe-camera-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 0;
+}
+
+.loe-camera-wrap {
+  position: relative;
+  flex: 1;
+  background: #000;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  min-height: 0;
+}
+
+.loe-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transform: scaleX(-1); /* Mirror effect for natural feel */
+}
+
+.loe-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  transform: scaleX(-1); /* Mirror to match video */
+}
+
+/* Camera placeholder when no feed */
+.loe-cam-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2rem;
+  background: rgba(8, 5, 20, 0.95);
+  border-radius: 20px;
+}
+
+.loe-cam-placeholder__icon {
+  font-size: 4rem;
+  animation: loe-icon-float 3s ease-in-out infinite;
+}
+
+@keyframes loe-icon-float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-10px); }
+}
+
+.loe-cam-placeholder__text {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.loe-cam-placeholder__hint {
+  font-size: 0.82rem;
+  color: #64748b;
+  text-align: center;
+  max-width: 250px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.loe-start-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #7c6af7 0%, #0ea5e9 100%);
+  color: #fff;
+  border: none;
+  padding: 0.85rem 2rem;
+  border-radius: 9999px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 4px 20px rgba(124, 106, 247, 0.4);
+}
+
+.loe-start-btn:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 8px 30px rgba(124, 106, 247, 0.6);
+}
+
+.loe-start-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Scanning animation overlay */
+.loe-scan-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: 20px;
+}
+
+.loe-scan-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, rgba(16, 185, 129, 0.8) 50%, transparent 100%);
+  animation: loe-scan 3s linear infinite;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+}
+
+@keyframes loe-scan {
+  0%   { top: 0%; opacity: 1; }
+  95%  { top: 100%; opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+/* Corner brackets */
+.loe-corner {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-color: rgba(16, 185, 129, 0.7);
+  border-style: solid;
+  opacity: 0.8;
+}
+
+.loe-corner.tl { top: 16px; left: 16px; border-width: 2px 0 0 2px; border-top-left-radius: 4px; }
+.loe-corner.tr { top: 16px; right: 16px; border-width: 2px 2px 0 0; border-top-right-radius: 4px; }
+.loe-corner.bl { bottom: 16px; left: 16px; border-width: 0 0 2px 2px; border-bottom-left-radius: 4px; }
+.loe-corner.br { bottom: 16px; right: 16px; border-width: 0 2px 2px 0; border-bottom-right-radius: 4px; }
+
+/* ── Detection Info Bar ──────────────────────────────────── */
+.loe-detection-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 0.75rem 1.2rem;
+  flex-shrink: 0;
+  gap: 0.75rem;
+}
+
+.loe-detected-label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+.loe-detected-label .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+  animation: loe-dot-blink 1.2s ease infinite;
+}
+
+.loe-confidence-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 1;
+  max-width: 160px;
+}
+
+.loe-confidence-track {
+  flex: 1;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.loe-confidence-fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #10b981, #34d399);
+  transition: width 0.4s ease;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+}
+
+.loe-confidence-text {
+  font-size: 0.75rem;
+  color: #34d399;
+  font-weight: 700;
+  min-width: 38px;
+  text-align: right;
+}
+
+.loe-freeze-btn {
+  background: rgba(124, 106, 247, 0.2);
+  border: 1px solid rgba(124, 106, 247, 0.35);
+  color: #a78bfa;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.loe-freeze-btn:hover {
+  background: rgba(124, 106, 247, 0.35);
+  border-color: rgba(124, 106, 247, 0.6);
+  color: #fff;
+}
+
+.loe-freeze-btn.active {
+  background: rgba(124, 106, 247, 0.6);
+  color: #fff;
+}
+
+/* ── Right Panel — Explanation ───────────────────────────── */
+.loe-info-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.loe-info-panel::-webkit-scrollbar { width: 4px; }
+.loe-info-panel::-webkit-scrollbar-track { background: transparent; }
+.loe-info-panel::-webkit-scrollbar-thumb { background: rgba(124, 106, 247, 0.4); border-radius: 9999px; }
+
+/* Object identity card */
+.loe-object-identity {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+  padding: 1.2rem 1.4rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-shrink: 0;
+  animation: loe-card-in 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards;
+}
+
+@keyframes loe-card-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.loe-object-emoji {
+  font-size: 3rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 12px rgba(255,255,255,0.2));
+}
+
+.loe-object-meta {
+  flex: 1;
+}
+
+.loe-object-name {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 0.25rem;
+  letter-spacing: -0.3px;
+}
+
+.loe-object-category {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.7rem;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: rgba(124, 106, 247, 0.15);
+  border: 1px solid rgba(124, 106, 247, 0.25);
+  color: #a78bfa;
+  letter-spacing: 0.4px;
+}
+
+/* Explanation sections */
+.loe-section {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  overflow: hidden;
+  flex-shrink: 0;
+  animation: loe-card-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1) both;
+}
+
+.loe-section:nth-child(3) { animation-delay: 0.05s; }
+.loe-section:nth-child(4) { animation-delay: 0.1s; }
+.loe-section:nth-child(5) { animation-delay: 0.15s; }
+
+.loe-section__header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1.2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.loe-section__icon {
+  font-size: 1rem;
+}
+
+.loe-section__title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #94a3b8;
+}
+
+.loe-section__body {
+  padding: 1rem 1.2rem;
+  font-size: 0.9rem;
+  color: #cbd5e1;
+  line-height: 1.7;
+}
+
+/* How-to steps formatting */
+.loe-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.loe-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  font-size: 0.88rem;
+  color: #cbd5e1;
+  line-height: 1.5;
+}
+
+.loe-step-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(124, 106, 247, 0.5) 0%, rgba(14, 165, 233, 0.5) 100%);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.loe-tip-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 10px;
+  padding: 0.8rem 1rem;
+  font-size: 0.85rem;
+  color: #6ee7b7;
+  line-height: 1.5;
+}
+
+/* ── Action Buttons Row ──────────────────────────────────── */
+.loe-actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.loe-action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  border: 1px solid transparent;
+}
+
+.loe-action-btn.speak {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.2) 0%, rgba(6, 182, 212, 0.2) 100%);
+  border-color: rgba(14, 165, 233, 0.3);
+  color: #38bdf8;
+}
+
+.loe-action-btn.speak:hover {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.35) 0%, rgba(6, 182, 212, 0.35) 100%);
+  border-color: rgba(14, 165, 233, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.25);
+}
+
+.loe-action-btn.speak.speaking {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.5) 0%, rgba(6, 182, 212, 0.5) 100%);
+  animation: loe-btn-pulse 1.5s ease infinite;
+}
+
+.loe-action-btn.sign {
+  background: linear-gradient(135deg, rgba(124, 106, 247, 0.2) 0%, rgba(167, 139, 250, 0.2) 100%);
+  border-color: rgba(124, 106, 247, 0.3);
+  color: #a78bfa;
+}
+
+.loe-action-btn.sign:hover {
+  background: linear-gradient(135deg, rgba(124, 106, 247, 0.35) 0%, rgba(167, 139, 250, 0.35) 100%);
+  border-color: rgba(124, 106, 247, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(124, 106, 247, 0.25);
+}
+
+.loe-action-btn.sign.active {
+  background: linear-gradient(135deg, rgba(124, 106, 247, 0.5) 0%, rgba(167, 139, 250, 0.5) 100%);
+  color: #fff;
+}
+
+.loe-action-btn.stop {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #f87171;
+}
+
+.loe-action-btn.stop:hover {
+  background: rgba(239, 68, 68, 0.3);
+  transform: translateY(-2px);
+}
+
+@keyframes loe-btn-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0); }
+  50%       { box-shadow: 0 0 0 8px rgba(14, 165, 233, 0.1); }
+}
+
+/* ── Sign Language Avatar Panel ──────────────────────────── */
+.loe-avatar-panel {
+  background: rgba(12, 8, 28, 0.8);
+  border: 1px solid rgba(124, 106, 247, 0.15);
+  border-radius: 16px;
+  overflow: hidden;
+  flex-shrink: 0;
+  animation: loe-card-in 0.45s ease both;
+  animation-delay: 0.2s;
+}
+
+.loe-avatar-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: linear-gradient(90deg, rgba(124, 106, 247, 0.12) 0%, rgba(14, 165, 233, 0.08) 100%);
+}
+
+.loe-avatar-panel__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: #94a3b8;
+}
+
+.loe-avatar-panel__word {
+  font-size: 0.8rem;
+  color: #a78bfa;
+  font-weight: 600;
+  font-style: italic;
+}
+
+.loe-avatar-body {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  padding: 0.8rem 1.2rem;
+}
+
+.loe-avatar-face-wrap {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(124, 106, 247, 0.2) 0%, rgba(14, 165, 233, 0.05) 100%);
+  border: 1px solid rgba(124, 106, 247, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 0 20px rgba(124, 106, 247, 0.15);
+}
+
+.loe-avatar-face {
+  width: 100%;
+  height: 100%;
+}
+
+.loe-avatar-canvas-wrap {
+  flex: 1;
+  height: 90px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+.loe-avatar-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.loe-avatar-label {
+  position: absolute;
+  bottom: 4px;
+  right: 8px;
+  font-size: 0.65rem;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.loe-avatar-letter-badge {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  background: rgba(14, 165, 233, 0.2);
+  border: 1px solid rgba(14, 165, 233, 0.4);
+  color: #38bdf8;
+  padding: 0.12rem 0.4rem;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  animation: loe-badge-pop 0.3s ease;
+}
+
+@keyframes loe-badge-pop {
+  from { transform: scale(0.7); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+/* ── No-Object Idle State ────────────────────────────────── */
+.loe-idle-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  text-align: center;
+  padding: 2rem;
+}
+
+.loe-idle-panel__emoji {
+  font-size: 4rem;
+  animation: loe-icon-float 3s ease-in-out infinite;
+}
+
+.loe-idle-panel__title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.loe-idle-panel__hint {
+  font-size: 0.85rem;
+  color: #475569;
+  max-width: 260px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Browsable object chips */
+.loe-object-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  max-width: 320px;
+}
+
+.loe-object-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.7rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.loe-object-chip:hover {
+  background: rgba(124, 106, 247, 0.15);
+  border-color: rgba(124, 106, 247, 0.3);
+  color: #c4b5fd;
+  transform: translateY(-1px);
+}
+
+/* ── Loading Screen ──────────────────────────────────────── */
+.loe-loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2rem;
+  background: rgba(8, 5, 20, 0.92);
+  border-radius: 20px;
+  z-index: 5;
+}
+
+.loe-loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid rgba(255, 255, 255, 0.08);
+  border-top-color: #7c6af7;
+  border-radius: 50%;
+  animation: loe-spin 0.9s linear infinite;
+}
+
+@keyframes loe-spin {
+  to { transform: rotate(360deg); }
+}
+
+.loe-loading-text {
+  font-size: 0.9rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+/* ── Browse Mode (Manual Object Picker) ──────────────────── */
+.loe-browse-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  overflow-y: auto;
+  max-height: calc(100vh - 160px);
+}
+
+.loe-browse-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.loe-browse-card:hover {
+  background: rgba(124, 106, 247, 0.1);
+  border-color: rgba(124, 106, 247, 0.25);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.loe-browse-card.selected {
+  background: rgba(124, 106, 247, 0.18);
+  border-color: rgba(124, 106, 247, 0.45);
+  box-shadow: 0 0 20px rgba(124, 106, 247, 0.15);
+}
+
+.loe-browse-card__emoji {
+  font-size: 2rem;
+}
+
+.loe-browse-card__name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1.2;
+}
+
+.loe-browse-card__cat {
+  font-size: 0.7rem;
+  color: #64748b;
+}
+
+/* ── Responsive Mobile ───────────────────────────────────── */
+@media (max-width: 768px) {
+  .loe-body {
+    grid-template-columns: 1fr;
+    max-height: none;
+    overflow: visible;
+    padding: 1rem;
+  }
+
+  .loe-camera-wrap {
+    height: 300px;
+    flex: none;
+  }
+
+  .loe-info-panel {
+    overflow-y: visible;
+  }
+
+  .loe-topbar {
+    padding: 0.75rem 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .loe-title { font-size: 1rem; }
+
+  .loe-browse-panel {
+    grid-template-columns: 1fr 1fr;
+    max-height: none;
+  }
+
+  .loe-actions { flex-wrap: wrap; }
+}
+
+@media (max-width: 480px) {
+  .loe-browse-panel { grid-template-columns: 1fr; }
+  .loe-topbar__right { display: none; }
+}
