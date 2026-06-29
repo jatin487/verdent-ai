@@ -18,7 +18,7 @@ export default function AuthPage({ role, onBack, onAuthSuccess }) {
     setError(null);
     try {
       if (isLogin) {
-        await login(email, password);
+        await login(email, password, role);
       } else {
         await signup(email, password, role);
       }

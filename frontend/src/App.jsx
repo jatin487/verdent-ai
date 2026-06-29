@@ -22,6 +22,7 @@ import AuthPage from "./pages/AuthPage";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import LiveClass from "./pages/LiveClass";
 import AiDoubtAssistant from "./components/AiDoubtAssistant";
+import SignKeyboard from "./components/SignKeyboard";
 import LiveObjectExplainer from "./pages/LiveObjectExplainer";
 
 // Pages that are full-screen and manage their own layout (no shared Navbar)
@@ -62,7 +63,7 @@ function MainRouter() {
         role={selectedRoleForAuth}
         onBack={() => setPage("roleselect")}
         onAuthSuccess={() => {
-          if (selectedRoleForAuth === "teacher" || userRole === "teacher") {
+          if (selectedRoleForAuth === "teacher") {
             setPage("teacherDashboard");
           } else {
             setPage("dashboard");
@@ -117,6 +118,7 @@ export default function App() {
       <A11yProvider>
         <MainRouter />
         <AiDoubtAssistant />
+        <SignKeyboard />
       </A11yProvider>
     </AuthProvider>
   );

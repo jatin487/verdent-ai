@@ -83,26 +83,38 @@ export function AuthProvider({ children }) {
     setUserRole(role);
   };
 
-  const login = async (email, password) => {
+  const login = async (email, password, selectedRole) => {
     if (isMock) {
-      const storedLocal = localStorage.getItem('mock_user_cast');
-      if (!storedLocal) {
-        throw new Error("No user found. Please sign up first.");
-      }
-      const mockUser = JSON.parse(storedLocal);
+      // In mock mode, sync the role with the selected role so developers can test both dashboards easily
+      const mockUser = { 
+        uid: Date.now().toString(), 
+        email, 
+        role: selectedRole || 'student' 
+      };
+      localStorage.setItem('mock_user_cast', JSON.stringify(mockUser));
       setCurrentUser(mockUser);
-      setUserRole(mockUser.role || 'student');
-      return;
+      const resolvedRole = selectedRole || 'student';
+      setUserRole(resolvedRole);
+      return resolvedRole; // ← return so caller can route correctly
     }
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    // Fetch role after login explicitly just to be safe
+    // Fetch role after login explicitly
     const docRef = doc(db, 'users', userCredential.user.uid);
     const docSnap = await getDoc(docRef);
-    if (docSnap.exists() && docSnap.data().role) {
-       setUserRole(docSnap.data().role);
-    } else {
-       setUserRole('student'); // Default fallback
+    let resolvedRole = (docSnap.exists() && docSnap.data().role) ? docSnap.data().role : 'student';
+    
+    // If user has a selected role but not in Firestore, save it
+    if (selectedRole && (!docSnap.exists() || !docSnap.data().role)) {
+      resolvedRole = selectedRole;
+      try {
+        await setDoc(docRef, { email, role: selectedRole }, { merge: true });
+      } catch (e) {
+        console.error("Failed to update user role in Firestore", e);
+      }
     }
+    
+    setUserRole(resolvedRole);
+    return resolvedRole; // ← return so caller can route correctly
   };
 
   const logout = async () => {

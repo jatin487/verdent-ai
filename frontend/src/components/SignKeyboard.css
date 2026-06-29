@@ -1,0 +1,585 @@
+/* SignKeyboard.css - Premium Glassmorphism Design */
+
+/* Launcher Floating Button */
+.sign-keyboard__launcher {
+  position: fixed;
+  bottom: 7.5rem;
+  right: 2rem;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%); /* Green theme to contrast the AI Doubt assistant */
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 32px rgba(16, 185, 129, 0.4), 0 0 20px rgba(5, 150, 105, 0.2);
+  cursor: pointer;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.sign-keyboard__launcher:hover {
+  transform: scale(1.1) rotate(-15deg);
+  box-shadow: 0 12px 40px rgba(16, 185, 129, 0.6), 0 0 30px rgba(5, 150, 105, 0.4);
+}
+
+.sign-keyboard__launcher.listening::after {
+  content: '';
+  position: absolute;
+  top: -6px; left: -6px; right: -6px; bottom: -6px;
+  border-radius: 50%;
+  border: 2px dashed #34d399;
+  animation: sign-rotate-pulse 4s linear infinite;
+  opacity: 0.8;
+}
+
+@keyframes sign-rotate-pulse {
+  0% { transform: rotate(0deg) scale(1); opacity: 0.8; }
+  50% { transform: rotate(-180deg) scale(1.08); opacity: 1; }
+  100% { transform: rotate(-360deg) scale(1); opacity: 0.8; }
+}
+
+/* Modal Overlay */
+.sign-keyboard__overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(13, 10, 24, 0.8);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  animation: sign-fade-in 0.25s ease-out forwards;
+}
+
+@keyframes sign-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Main Panel container */
+.sign-keyboard__panel {
+  width: 1000px;
+  max-width: 95%;
+  height: 80vh;
+  max-height: 800px;
+  background: rgba(22, 18, 38, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), 0 0 40px rgba(16, 185, 129, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: sign-slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes sign-slide-up {
+  from { transform: translateY(40px) scale(0.95); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* Header */
+.sign-keyboard__header {
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.1) 100%);
+  padding: 1.2rem 1.8rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sign-keyboard__title-block {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.sign-keyboard__status-icon {
+  font-size: 1.8rem;
+  animation: sign-bob 2s ease-in-out infinite;
+}
+
+@keyframes sign-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.sign-keyboard__title {
+  color: #fff;
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+.sign-keyboard__subtitle {
+  font-size: 0.75rem;
+  color: #34d399;
+  display: block;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.sign-keyboard__close-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1.2rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.sign-keyboard__close-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  transform: rotate(90deg);
+}
+
+/* Double Column Layout */
+.sign-keyboard__body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  height: calc(100% - 70px);
+}
+
+/* Left Column: Output & Avatar */
+.sign-keyboard__left-col {
+  width: 42%;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  overflow-y: auto;
+}
+
+/* Right Column: Keyboard Grid */
+.sign-keyboard__right-col {
+  width: 58%;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  overflow: hidden;
+}
+
+/* Text Output Area */
+.sign-keyboard__output-box {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.sign-keyboard__output-label {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.sign-keyboard__output-textarea {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 1.15rem;
+  font-family: inherit;
+  resize: none;
+  width: 100%;
+  height: 60px;
+  outline: none;
+  line-height: 1.4;
+}
+
+.sign-keyboard__output-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.sign-keyboard__action-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #e5e7eb;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  transition: all 0.2s;
+}
+
+.sign-keyboard__action-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.sign-keyboard__action-btn.primary {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border: none;
+  font-weight: 600;
+}
+
+.sign-keyboard__action-btn.primary:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+/* Avatar Preview styling */
+.sign-keyboard__avatar-wrap {
+  background: radial-gradient(circle at center, rgba(16, 185, 129, 0.15) 0%, rgba(22, 18, 38, 0.9) 80%);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 12px;
+  padding: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.sign-keyboard__avatar-inner {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+}
+
+.sign-keyboard__avatar-face-wrap {
+  width: 70px;
+  height: 70px;
+}
+
+.sign-keyboard__avatar-face {
+  width: 100%;
+  height: 100%;
+}
+
+.sign-keyboard__avatar-hand-wrap {
+  width: 180px;
+  height: 90px;
+  position: relative;
+}
+
+.sign-keyboard__avatar-canvas {
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+}
+
+.sign-keyboard__avatar-label {
+  position: absolute;
+  bottom: 0.3rem;
+  left: 0.5rem;
+  font-size: 0.7rem;
+  color: #34d399;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+
+.sign-keyboard__avatar-speech {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  padding: 0.2rem 0.6rem;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #34d399;
+  max-width: 150px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: pulse-border 1.5s infinite alternate;
+}
+
+@keyframes pulse-border {
+  from { border-color: rgba(16, 185, 129, 0.3); }
+  to { border-color: rgba(16, 185, 129, 0.8); }
+}
+
+/* Favorites Panel */
+.sign-keyboard__favorites {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+  padding: 0.8rem;
+  overflow: hidden;
+}
+
+.sign-keyboard__favorites-title {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  text-transform: uppercase;
+  font-weight: 700;
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sign-keyboard__favorites-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-right: 0.2rem;
+}
+
+.sign-keyboard__fav-item {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0.5rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: #e5e7eb;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sign-keyboard__fav-item:hover {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #34d399;
+}
+
+.sign-keyboard__fav-delete {
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+  padding: 0.2rem;
+}
+
+.sign-keyboard__fav-delete:hover {
+  opacity: 1;
+}
+
+.sign-keyboard__no-favs {
+  font-size: 0.8rem;
+  color: #6b7280;
+  text-align: center;
+  padding: 1.5rem 0;
+}
+
+/* Tabs for Keyboard categories */
+.sign-keyboard__tabs {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  scrollbar-width: thin;
+}
+
+.sign-keyboard__tabs::-webkit-scrollbar {
+  height: 4px;
+}
+.sign-keyboard__tabs::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+.sign-keyboard__tab-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: #9ca3af;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sign-keyboard__tab-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.sign-keyboard__tab-btn.active {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #34d399;
+  font-weight: 600;
+}
+
+/* Suggestion Box */
+.sign-keyboard__suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sign-keyboard__suggestions-title {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  text-transform: uppercase;
+  font-weight: 700;
+  margin: 0;
+}
+
+.sign-keyboard__suggestions-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.sign-keyboard__sug-btn {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  color: #a7f3d0;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.8rem;
+  border-radius: 15px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sign-keyboard__sug-btn:hover {
+  background: rgba(16, 185, 129, 0.18);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+/* Keyboard Grid Area */
+.sign-keyboard__grid-container {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 0.4rem;
+}
+
+.sign-keyboard__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 0.8rem;
+}
+
+.sign-keyboard__key {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 0.8rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: center;
+}
+
+.sign-keyboard__key:hover {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+}
+
+.sign-keyboard__key-icon {
+  font-size: 1.8rem;
+}
+
+.sign-keyboard__key-label {
+  font-size: 0.8rem;
+  color: #e5e7eb;
+  font-weight: 500;
+}
+
+/* Voice notification animation overlay */
+.sign-keyboard__voice-alert {
+  position: fixed;
+  bottom: 3rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(16, 185, 129, 0.95);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 0.8rem 1.6rem;
+  border-radius: 30px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
+  z-index: 2000;
+  animation: sign-toast 2.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes sign-toast {
+  0% { transform: translate(-50%, 20px); opacity: 0; }
+  10% { transform: translate(-50%, 0); opacity: 1; }
+  90% { transform: translate(-50%, 0); opacity: 1; }
+  100% { transform: translate(-50%, -20px); opacity: 0; }
+}
+
+.sign-keyboard__wave {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.sign-keyboard__bar {
+  width: 3px;
+  height: 12px;
+  background: #fff;
+  animation: sign-wave 1s ease-in-out infinite;
+}
+.sign-keyboard__bar:nth-child(2) { animation-delay: 0.2s; }
+.sign-keyboard__bar:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes sign-wave {
+  0%, 100% { height: 6px; }
+  50% { height: 16px; }
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .sign-keyboard__panel {
+    height: 90vh;
+    max-height: none;
+    width: 95%;
+  }
+  .sign-keyboard__body {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .sign-keyboard__left-col, .sign-keyboard__right-col {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    height: auto;
+    overflow: visible;
+  }
+}
