@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import "./Navbar.css";
 
 const NAV_LINKS = [
+  { id: "cast", label: "C.A.S.T. Live", icon: "⚡" },
   { id: "home", label: "Home", icon: "🏠" },
   { id: "dashboard", label: "Courses", icon: "📚" },
   { id: "signdetector", label: "Sign Detector", icon: "🤝" },

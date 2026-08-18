@@ -25,9 +25,11 @@ import AiDoubtAssistant from "./components/AiDoubtAssistant";
 import SignKeyboard from "./components/SignKeyboard";
 import LiveObjectExplainer from "./pages/LiveObjectExplainer";
 
+import CastExperience from "./components/CastExperience";
+
 // Pages that are full-screen and manage their own layout (no shared Navbar)
 const FULL_SCREEN_PAGES = new Set([
-  "home", "dashboard", "transcriber", "teacherDashboard",
+  "cast", "home", "dashboard", "transcriber", "teacherDashboard",
   "alphabet", "signdetector", "virtualclass", "googlemeet", "liveclass", "liveobject",
 ]);
 
@@ -85,9 +87,10 @@ function MainRouter() {
 
   // ── Standard pages ─────────────────────────────────────────────────────────
   const PAGE_MAP = {
+    cast: CastExperience,
     home: LandingPage,
     dashboard: Dashboard,
-    signdetector: SignDetector,
+    signdetector: CastExperience,
     alphabet: AlphabetLearner,
     numbers: NumbersSignLanguage,
     speech: SpeechTherapy,

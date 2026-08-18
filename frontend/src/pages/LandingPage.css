@@ -1,121 +1,393 @@
-.landing-new {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, #f3b5b5, #c8d0e6, #f3e6c8);
-    position: relative;
-    overflow: hidden;
+/* ================================================================
+   LandingPage – Cinematic Dark Hero  (Three.js background layer)
+   ================================================================ */
+
+/* ── Root shell ─────────────────────────────────────────────── */
+.lp-root {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #050a14;          /* deep void – Three.js renders on top */
+  overflow: hidden;
+  font-family: "Inter", sans-serif;
 }
 
-.landing-new__container {
-    text-align: center;
-    max-width: 720px;
-    padding: 40px 20px;
-    z-index: 10;
+/* ── Gradient veil so text stays legible over 3-D scene ────── */
+.lp-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 80% 60% at 50% 55%,
+    rgba(5, 10, 20, 0.55) 0%,
+    rgba(5, 10, 20, 0.82) 65%,
+    rgba(5, 10, 20, 0.97) 100%
+  );
 }
 
-.landing-new__title {
-    font-family: 'Lexend', sans-serif;
-    font-size: 82px;
-    font-weight: 900;
-    margin-bottom: 0px;
-    background: linear-gradient(90deg, #f6a84c, #7cc36e, #2fb6a3);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+/* ── Floating sign-language bubbles ────────────────────────── */
+.lp-sign-bubble {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  animation: lp-float 4s ease-in-out infinite;
+  will-change: transform;
+}
+.lp-sign-bubble__emoji {
+  font-size: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 24px rgba(0, 242, 254, 0.15), inset 0 1px 0 rgba(255,255,255,0.1);
+  transition: transform 0.3s ease;
+}
+.lp-sign-bubble:hover .lp-sign-bubble__emoji {
+  transform: scale(1.2);
+  box-shadow: 0 8px 32px rgba(0, 242, 254, 0.35);
+}
+.lp-sign-bubble__label {
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  color: rgba(160, 220, 255, 0.7);
+  text-transform: uppercase;
 }
 
-.landing-new__subtitle {
-    font-size: 28px;
-    color: #2a8fa7;
-    margin-top: -10px;
-    font-weight: 500;
+@keyframes lp-float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33%       { transform: translateY(-10px) rotate(1.5deg); }
+  66%       { transform: translateY(-5px) rotate(-1deg); }
 }
 
-.landing-new__graphic {
-    position: relative;
-    width: 260px;
-    height: 260px;
-    margin: 40px auto;
+/* ── Hero content panel ─────────────────────────────────────── */
+.lp-hero {
+  position: relative;
+  z-index: 3;
+  text-align: center;
+  max-width: 780px;
+  padding: 48px 32px;
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.lp-hero--visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
-.landing-new__decoration-ring {
-    position: absolute;
-    width: 240px;
-    height: 240px;
-    border-radius: 50%;
-    border: 3px dashed rgba(0, 0, 0, 0.15);
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+/* Individual stagger via CSS custom property */
+.lp-hero__anim {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: lp-rise 0.75s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: calc(var(--d, 0s) + 0.1s);
+}
+@keyframes lp-rise {
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.landing-new__center-circle {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #1ec7b6, #1f9cc0);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 55px;
-    color: white;
-    z-index: 5;
+/* ── AI badge ───────────────────────────────────────────────── */
+.lp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 18px;
+  border-radius: 9999px;
+  background: rgba(0, 242, 254, 0.1);
+  border: 1px solid rgba(0, 242, 254, 0.3);
+  color: #00f2fe;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 24px;
+  backdrop-filter: blur(10px);
+}
+.lp-badge__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #00f2fe;
+  box-shadow: 0 0 8px #00f2fe;
+  animation: lp-pulse-dot 1.8s ease-in-out infinite;
+}
+@keyframes lp-pulse-dot {
+  0%, 100% { box-shadow: 0 0 8px #00f2fe; transform: scale(1); }
+  50%       { box-shadow: 0 0 16px #00f2fe; transform: scale(1.3); }
 }
 
-.landing-new__float-icon {
-    position: absolute;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    background: white;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+/* ── Title ──────────────────────────────────────────────────── */
+.lp-title {
+  margin: 0 0 18px;
+  line-height: 1.05;
+}
+.lp-title__cast {
+  font-family: "Lexend", "Inter", sans-serif;
+  font-size: clamp(4.5rem, 12vw, 8rem);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #00f2fe 0%, #7c6af7 50%, #34d399 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: lp-shimmer 4s linear infinite;
+  display: block;
+}
+@keyframes lp-shimmer {
+  0%   { background-position: 0%   center; }
+  100% { background-position: 200% center; }
+}
+.lp-title__sub {
+  display: block;
+  font-family: "Inter", sans-serif;
+  font-size: clamp(0.95rem, 2.2vw, 1.25rem);
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(160, 200, 255, 0.55);
+  -webkit-text-fill-color: unset;
+  background: none;
+  margin-top: 2px;
 }
 
-.icon-video { top: -20px; left: 40%; }
-.icon-audio { bottom: -20px; left: 10%; }
-.icon-mic { bottom: -20px; right: 10%; }
-
-.landing-new__description {
-    margin: 40px 0;
-    font-size: 1.1rem;
-    color: #475569;
-    line-height: 1.6;
+/* ── Tagline ─────────────────────────────────────────────────── */
+.lp-tagline {
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  color: rgba(190, 220, 255, 0.72);
+  line-height: 1.7;
+  margin: 0 0 28px;
+  font-weight: 400;
+}
+.lp-tagline em {
+  font-style: normal;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
 }
 
-.btn-get-started {
-    padding: 18px 50px;
-    font-size: 20px;
-    font-weight: 700;
-    border-radius: 40px;
-    border: none;
-    background: linear-gradient(90deg, #ff7a5c, #ff9a3c);
-    color: white;
-    box-shadow: 0 12px 30px rgba(255, 120, 80, 0.35);
-    cursor: pointer;
-    transition: transform 0.2s ease;
+/* ── Feature pills ──────────────────────────────────────────── */
+.lp-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 36px;
+}
+.lp-pill {
+  padding: 7px 16px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(200, 220, 255, 0.8);
+  font-size: 0.82rem;
+  font-weight: 500;
+  backdrop-filter: blur(8px);
+  transition: background 0.2s, border-color 0.2s, transform 0.2s;
+  cursor: default;
+}
+.lp-pill:hover {
+  background: rgba(0, 242, 254, 0.1);
+  border-color: rgba(0, 242, 254, 0.35);
+  transform: translateY(-2px);
+  color: #fff;
 }
 
-.btn-get-started:hover {
-    transform: scale(1.05);
+/* ── CTA buttons ────────────────────────────────────────────── */
+.lp-ctas {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
 }
 
-.landing-new__bg-shape {
-    position: absolute;
-    width: 500px;
-    height: 500px;
-    filter: blur(120px);
-    opacity: 0.3;
+.lp-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 40px;
+  border-radius: 60px;
+  font-family: "Inter", sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  transition: transform 0.25s cubic-bezier(0.22,1,0.36,1),
+              box-shadow 0.25s ease;
+  letter-spacing: 0.02em;
+  overflow: hidden;
 }
 
-.shape-pink { background: #ff9a3c; top: -150px; left: -150px; }
-.shape-yellow { background: #7cc36e; bottom: -200px; right: -150px; }
-.shape-cyan { background: #2fb6a3; top: 30%; left: 70%; }
+/* Primary – glowing cyan/violet */
+.lp-btn--primary {
+  background: linear-gradient(135deg, #00f2fe 0%, #4facfe 50%, #7c6af7 100%);
+  color: #050a14;
+  box-shadow: 0 0 30px rgba(0, 200, 255, 0.35), 0 4px 16px rgba(0,0,0,0.4);
+}
+.lp-btn--primary:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 0 50px rgba(0, 200, 255, 0.55), 0 8px 28px rgba(0,0,0,0.5);
+}
+.lp-btn--primary:active { transform: scale(0.98); }
+
+/* Animated glow sweep on primary */
+.lp-btn__glow {
+  position: absolute;
+  top: -50%; left: -60%;
+  width: 60%; height: 200%;
+  background: linear-gradient(105deg, transparent, rgba(255,255,255,0.35), transparent);
+  transform: skewX(-20deg);
+  animation: lp-btn-sweep 3s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes lp-btn-sweep {
+  0%, 100% { left: -60%; opacity: 0; }
+  20%       { opacity: 1; }
+  50%       { left: 130%; opacity: 0; }
+}
+
+/* Secondary – glass dark */
+.lp-btn--secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(200, 220, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+.lp-btn--secondary:hover {
+  background: rgba(124, 106, 247, 0.15);
+  border-color: rgba(124, 106, 247, 0.5);
+  color: #fff;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(124, 106, 247, 0.25);
+}
+
+.lp-btn__icon {
+  font-size: 1.2em;
+  flex-shrink: 0;
+}
+
+/* ── Trust strip ─────────────────────────────────────────────── */
+.lp-trust {
+  font-size: 0.78rem;
+  color: rgba(160, 190, 230, 0.45);
+  letter-spacing: 0.04em;
+}
+
+/* ── Creative "Get Started" button ──────────────────────────── */
+.lp-btn-gs {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  width: 220px;
+  height: 64px;
+  border-radius: 60px;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  outline: none;
+  /* gradient border via pseudo-element trick */
+}
+
+/* Inner gradient fill */
+.lp-btn-gs::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 60px;
+  background: linear-gradient(135deg, #00f2fe 0%, #4facfe 45%, #7c6af7 100%);
+  z-index: 0;
+  transition: opacity 0.3s ease;
+}
+.lp-btn-gs:hover::before { opacity: 0.9; }
+
+/* Dual pulsing ring halos */
+.lp-btn-gs__ring {
+  position: absolute;
+  inset: -6px;
+  border-radius: 70px;
+  border: 2px solid rgba(0, 242, 254, 0.5);
+  z-index: 0;
+  animation: lp-gs-ring 2.4s ease-out infinite;
+}
+.lp-btn-gs__ring--2 {
+  border-color: rgba(124, 106, 247, 0.4);
+  animation-delay: 1.2s;
+}
+@keyframes lp-gs-ring {
+  0%   { transform: scale(1);    opacity: 0.7; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+
+/* Light sweep */
+.lp-btn-gs__glow {
+  position: absolute;
+  top: -50%; left: -55%;
+  width: 55%; height: 200%;
+  background: linear-gradient(105deg, transparent, rgba(255,255,255,0.4), transparent);
+  transform: skewX(-20deg);
+  z-index: 1;
+  animation: lp-gs-sweep 2.6s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes lp-gs-sweep {
+  0%, 100% { left: -55%; opacity: 0; }
+  15%       { opacity: 1; }
+  55%       { left: 120%; opacity: 0; }
+}
+
+/* Content row */
+.lp-btn-gs__content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #050a14;
+  font-family: "Inter", sans-serif;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+/* Arrow slides right on hover */
+.lp-btn-gs__arrow {
+  display: flex;
+  align-items: center;
+  transition: transform 0.28s cubic-bezier(0.22,1,0.36,1);
+}
+.lp-btn-gs:hover .lp-btn-gs__arrow {
+  transform: translateX(5px);
+}
+
+.lp-btn-gs:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 0 55px rgba(0, 200, 255, 0.45), 0 10px 32px rgba(0,0,0,0.5);
+  transition: transform 0.25s cubic-bezier(0.22,1,0.36,1), box-shadow 0.25s ease;
+}
+.lp-btn-gs:active { transform: scale(0.97); }
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .lp-sign-bubble { display: none; }
+  .lp-hero { padding: 36px 20px; }
+  .lp-ctas { flex-direction: column; align-items: center; }
+  .lp-btn-gs { width: 200px; }
+}
